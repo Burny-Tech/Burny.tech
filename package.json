@@ -6,7 +6,7 @@
   "author": "Burny <qcurtain@qq.com>",
   "license": "MIT",
   "scripts": {
-    "dev": "vuepress dev docs",
+    "start": "yarn install && vuepress dev docs",
     "build": "vuepress build docs",
     "deploy": "yarn build && node ./scp.js"
   },
