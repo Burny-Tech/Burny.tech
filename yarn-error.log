@@ -1,0 +1,47 @@
+Arguments: 
+  D:\node\node.exe C:\Users\cyx\AppData\Roaming\npm\node_modules\yarn\bin\yarn.js install
+
+PATH: 
+  C:\Users\cyx\bin;D:\git\mingw64\bin;D:\git\usr\local\bin;D:\git\usr\bin;D:\git\usr\bin;D:\git\mingw64\bin;D:\git\usr\bin;C:\Users\cyx\bin;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0;C:\Windows\System32\OpenSSH;D:\jdk\bin;D:\maven3.6.3\bin;D:\jdk\jre\bin;D:\Git\cmd;D:\node;C:\ProgramData\chocolatey\bin;D:\node\node_modules;C:\Users\cyx\AppData\Roaming\npm\node_modules\yarn\bin;C:\Users\cyx\AppData\Roaming\npm;D:\go\sdk\bin;D:\SecureCRT;C:\Users\cyx\AppData\Local\Microsoft\WindowsApps;D:\pycharm\PyCharm 2020.3\bin;D:\vscode\installpath\bin;D:\node\nodeGlobal;D:\webstorm\WebStorm 2020.3.3\bin;C:\Users\cyx\AppData\Local\GitHubDesktop\bin;C:\Users\cyx\go\bin;D:\git\usr\bin\vendor_perl;D:\git\usr\bin\core_perl
+
+Yarn version: 
+  1.22.10
+
+Node version: 
+  14.16.1
+
+Platform: 
+  win32 x64
+
+Trace: 
+  Error: EPERM: operation not permitted, unlink 'D:\Users\cyx\Desktop\burny.tech\node_modules\esbuild-windows-64\esbuild.exe'
+
+npm manifest: 
+  {
+    "name": "burny.tech",
+    "version": "1.0.0",
+    "description": "私有博客",
+    "main": "index.js",
+    "author": "Burny <qcurtain@qq.com>",
+    "license": "MIT",
+    "scripts": {
+      "start": "vuepress dev docs",
+      "build": "vuepress build docs",
+      "deploy": "yarn build && node ./scp.js"
+    },
+    "devDependencies": {
+      "cross-env": "^7.0.3",
+      "scp2": "^0.5.0",
+      "vuepress": "^2.0.0-beta.49"
+    },
+    "dependencies": {
+      "compression-webpack-plugin": "^6.1.1",
+      "ora": "^5.1.0"
+    }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
