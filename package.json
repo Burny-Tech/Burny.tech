@@ -11,7 +11,6 @@
     "deploy": "yarn build && node ./scp.js"
   },
   "devDependencies": {
-    "@vssue/vuepress-plugin-vssue": "^1.4.8",
     "@vuepress/plugin-container": "^2.0.0-beta.49",
     "@vuepress/plugin-external-link-icon": "^2.0.0-beta.49",
     "@vuepress/plugin-pwa": "^2.0.0-beta.49",
@@ -23,6 +22,7 @@
   "dependencies": {
     "@vssue/api-gitee-v5": "^1.4.7",
     "@vssue/api-github-v3": "^1.4.7",
+    "@vssue/vuepress-plugin-vssue": "^1.4.8",
     "compression-webpack-plugin": "^6.1.1",
     "ora": "^5.1.0"
   }

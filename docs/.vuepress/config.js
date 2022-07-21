@@ -1,7 +1,9 @@
 const { defaultTheme } = require('vuepress')
 const { backToTopPlugin } = require('@vuepress/plugin-back-to-top')
-const { pwaPlugin } = require('@vuepress/plugin-pwa')
-const { pwaPopupPlugin } = require('@vuepress/plugin-pwa-popup')
+
+
+
+
 
 
 
@@ -94,14 +96,16 @@ module.exports = {
   }),
 
   plugins: [
-    [
-      '@vssue/vuepress-plugin-vssue',{
-      platform: 'gitee',
-      owner: 'chenyx',
+    [backToTopPlugin()],
+    ['@vssue/vuepress-plugin-vssue', {
+      platform: 'github',
+      owner: 'Burny-Tech',
       repo: 'Burny.tech',
-      clientId: 'b26bff221579b505faebe0344fb3f1238e00f9a1ae068382e5e87cd1d6731d63',
-      clientSecret: '375fb96d59ac49b08d7d956cfba3859afb3749a903e6149017032dad8f702ae7',
-    }]
+      clientId: 'e934b7c798f140bb6d32',
+      clientSecret: '41902742a01c1792bc472f301b140c067e94c770',
+    }],
+    
+
   ]
     
       
