@@ -93,27 +93,19 @@ module.exports = {
 
   }),
 
-  Plugins: [
-    backToTopPlugin(),
-    pwaPlugin({
-      // skipWaiting: true
-      
-      
-    }),
-     pwaPopupPlugin({
-      // 配置项
-       locales: {
-        '/': {
-          message: 'New content is available.',
-          buttonText: 'Refresh',
-        },
-        '/zh/': {
-          message: '发现新内容可用',
-          buttonText: '刷新',
-        },
-      },
-    }),
+  plugins: [
+    [
+      '@vssue/vuepress-plugin-vssue',{
+      platform: 'gitee',
+      owner: 'chenyx',
+      repo: 'Burny.tech',
+      clientId: 'b26bff221579b505faebe0344fb3f1238e00f9a1ae068382e5e87cd1d6731d63',
+      clientSecret: '375fb96d59ac49b08d7d956cfba3859afb3749a903e6149017032dad8f702ae7',
+    }]
   ]
+    
+      
+  
 
 
 
