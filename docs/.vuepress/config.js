@@ -1,9 +1,24 @@
 const { defaultTheme } = require('vuepress')
+const { backToTopPlugin } = require('@vuepress/plugin-back-to-top')
+const { pwaPlugin } = require('@vuepress/plugin-pwa')
+const { pwaPopupPlugin } = require('@vuepress/plugin-pwa-popup')
+
+
+
 
 module.exports = {
   lang: 'zh-CN',
+  base: "/",
   title: 'Burny.tech',
   description: '开发博客笔记',
+  head: [
+    ['link', { rel: 'manifest', href: '/manifest.webmanifest' }],
+        ['meta', { name: 'theme-color', content: '#3eaf7c' }],
+
+
+
+
+  ],
 
   theme: defaultTheme({
     // 默认主题配置
@@ -77,6 +92,29 @@ module.exports = {
     
 
   }),
+
+  Plugins: [
+    backToTopPlugin(),
+    pwaPlugin({
+      // skipWaiting: true
+      
+      
+    }),
+     pwaPopupPlugin({
+      // 配置项
+       locales: {
+        '/': {
+          message: 'New content is available.',
+          buttonText: 'Refresh',
+        },
+        '/zh/': {
+          message: '发现新内容可用',
+          buttonText: '刷新',
+        },
+      },
+    }),
+  ]
+
 
 
 }
