@@ -8,3 +8,4 @@ docs/.vuepress/dist/404.html
 docs/.vuepress/dist/index.html
 docs/.vuepress/.temp
 docs/.vuepress/.cache
+scp.js

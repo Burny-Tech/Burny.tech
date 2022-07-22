@@ -1,5 +1,15 @@
 const { defaultTheme } = require('vuepress')
 const { backToTopPlugin } = require('@vuepress/plugin-back-to-top')
+const { externalLinkIconPlugin } = require('@vuepress/plugin-external-link-icon')
+const { mediumZoomPlugin } = require('@vuepress/plugin-medium-zoom')
+const { nprogressPlugin } = require('@vuepress/plugin-nprogress')
+const { registerComponentsPlugin } = require('@vuepress/plugin-register-components')
+const { docsearchPlugin } = require('@vuepress/plugin-docsearch')
+
+
+
+
+
 
 
 
@@ -15,7 +25,7 @@ module.exports = {
   description: '开发博客笔记',
   head: [
     ['link', { rel: 'manifest', href: '/manifest.webmanifest' }],
-        ['meta', { name: 'theme-color', content: '#3eaf7c' }],
+    ['meta', { name: 'theme-color', content: '#3eaf7c' }],
 
 
 
@@ -33,34 +43,34 @@ module.exports = {
         text: 'Group',
         children: ['/group/foo.md', '/group/bar.md'],
       },
-            // 字符串 - 页面文件路径
-            '/bar/README.md',
-            {
-              text: 'Group 2',
-              children: [
-                {
-                  text: 'Always active',
-                  link: '/',
-                  // 该元素将一直处于激活状态
-                  activeMatch: '/',
-                },
-                {
-                  text: 'Active on /',
-                  link: '/not-foo/',
-                  // 该元素在当前路由路径是 /foo/ 开头时激活
-                  // 支持正则表达式
-                  activeMatch: '^/foo/',
-                },
-              ],
-            },
+      // 字符串 - 页面文件路径
+      '/bar/README.md',
+      {
+        text: 'Group 2',
+        children: [
+          {
+            text: 'Always active',
+            link: '/',
+            // 该元素将一直处于激活状态
+            activeMatch: '/',
+          },
+          {
+            text: 'Active on /',
+            link: '/not-foo/',
+            // 该元素在当前路由路径是 /foo/ 开头时激活
+            // 支持正则表达式
+            activeMatch: '^/foo/',
+          },
+        ],
+      },
     ],
     // colorMode: 'auto' 
-        logo: 'https://vuejs.org/images/logo.png', //左上角 
+    logo: 'https://vuejs.org/images/logo.png', //左上角 
     repo: 'https://gitee.com/chenyx299/burny.tech',
     repoLabel: 'Burny.tech仓库',
-  //  logo: '/images/log.png'
-    
-    
+    //  logo: '/images/log.png'
+
+
     sidebar: {
       '/group/': [
         {
@@ -76,40 +86,54 @@ module.exports = {
       ],
     },
     sidebarDepth: 3,
-      editLink: true,
+    editLink: true,
     editLinkText: '编辑此页',
     lastUpdated: true,
     lastUpdatedText: '最近更新时间自定义',
     //贡献者列表
-    contributors: true, 
+    contributors: true,
     contributorsText: '贡献者列表',
     notFound: ['m没有找到自定义', 'meiyou2'],
     backToHome: '回到首页',
     openInNewWindow: '打开新窗口',
     toggleColorMode: '切换主题',
-    
 
- 
+
+
     //未知配置 主题配置 tip warning danger https://v2.vuepress.vuejs.org/zh/reference/default-theme/markdown.html
-    
+
 
   }),
 
   plugins: [
-    [backToTopPlugin()],
-    ['@vssue/vuepress-plugin-vssue', {
-      platform: 'github',
-      owner: 'Burny-Tech',
-      repo: 'Burny.tech',
-      clientId: 'e934b7c798f140bb6d32',
-      clientSecret: '41902742a01c1792bc472f301b140c067e94c770',
-    }],
-    
+    backToTopPlugin(),
+    externalLinkIconPlugin({
+      locales: {
+        '/': {
+          openInNewWindow: 'open in new window',
+        },
+        '/zh/': {
+          openInNewWindow: '在新窗口打开',
+        },
+      },
+    }),
+    mediumZoomPlugin({
+      selector: ':not(a) > img',
+      delay: 500,
+    }),
+    nprogressPlugin(),
+    registerComponentsPlugin(),
+    docsearchPlugin({
+
+    })
+
+
+
 
   ]
-    
-      
-  
+
+
+
 
 
 
