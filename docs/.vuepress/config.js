@@ -5,6 +5,9 @@ const { mediumZoomPlugin } = require('@vuepress/plugin-medium-zoom')
 const { nprogressPlugin } = require('@vuepress/plugin-nprogress')
 const { registerComponentsPlugin } = require('@vuepress/plugin-register-components')
 const { docsearchPlugin } = require('@vuepress/plugin-docsearch')
+const { prismjsPlugin } = require('@vuepress/plugin-prismjs')
+const { shikiPlugin } = require('@vuepress/plugin-shiki')
+
 
 
 
@@ -21,7 +24,7 @@ const { docsearchPlugin } = require('@vuepress/plugin-docsearch')
 module.exports = {
   lang: 'zh-CN',
   base: "/",
-  title: 'Burny.tech',
+  title: 'aws考试开发博客',
   description: '开发博客笔记',
   head: [
     ['link', { rel: 'manifest', href: '/manifest.webmanifest' }],
@@ -40,7 +43,7 @@ module.exports = {
         link: '/',
       },
       {
-        text: 'Group',
+        text: '框架',
         children: ['/group/foo.md', '/group/bar.md'],
       },
       // 字符串 - 页面文件路径
@@ -66,8 +69,8 @@ module.exports = {
     ],
     // colorMode: 'auto' 
     logo: 'https://vuejs.org/images/logo.png', //左上角 
-    repo: 'https://gitee.com/chenyx299/burny.tech',
-    repoLabel: 'Burny.tech仓库',
+    repo: 'https://github.com/Burny-Tech/Burny.tech.git',
+    repoLabel: 'aws开发博客',
     //  logo: '/images/log.png'
 
 
@@ -125,7 +128,14 @@ module.exports = {
     registerComponentsPlugin(),
     docsearchPlugin({
 
-    })
+    }),
+    prismjsPlugin({
+      // 配置项
+    }),
+     shikiPlugin({
+      // 配置项
+       IThemeRegistration: 'nord'
+    }),
 
 
 
