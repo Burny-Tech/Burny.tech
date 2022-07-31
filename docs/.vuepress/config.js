@@ -10,30 +10,16 @@ const { shikiPlugin } = require('@vuepress/plugin-shiki')
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 module.exports = {
   lang: 'zh-CN',
   base: "/",
-  title: 'aws考试开发博客',
-  description: '开发博客笔记',
+  title: '开发知识库笔记',
+  description: '开发知识库笔记',
   head: [
     ['link', { rel: 'manifest', href: '/manifest.webmanifest' }],
     ['meta', { name: 'theme-color', content: '#3eaf7c' }],
-
-
-
-
   ],
+  displayAllHeaders: false,
 
   theme: defaultTheme({
     // 默认主题配置
@@ -43,50 +29,94 @@ module.exports = {
         link: '/',
       },
       {
-        text: '框架',
-        children: ['/group/foo.md', '/group/bar.md'],
+        text: '碎片化笔记',
+        link: '/debris'
       },
       // 字符串 - 页面文件路径
-      '/bar/README.md',
-      {
-        text: 'Group 2',
-        children: [
-          {
-            text: 'Always active',
-            link: '/',
-            // 该元素将一直处于激活状态
-            activeMatch: '/',
-          },
-          {
-            text: 'Active on /',
-            link: '/not-foo/',
-            // 该元素在当前路由路径是 /foo/ 开头时激活
-            // 支持正则表达式
-            activeMatch: '^/foo/',
-          },
-        ],
-      },
+      // '/bar/README.md',
+      // {
+      //   text: '知识库',
+      //   children: [
+      //     {
+      //       text: 'Always active',
+      //       link: '/',
+      //       // 该元素将一直处于激活状态
+      //       activeMatch: '/',
+      //     },
+      //     {
+      //       text: 'Active on /',
+      //       link: '/not-foo/',
+      //       // 该元素在当前路由路径是 /foo/ 开头时激活
+      //       // 支持正则表达式
+      //       activeMatch: '^/foo/',
+      //     },
+      //   ],
+      // },
     ],
     // colorMode: 'auto' 
-    logo: 'https://vuejs.org/images/logo.png', //左上角 
+    logo: '/images/icon/android-chrome-192x192.png', //左上角 
     repo: 'https://github.com/Burny-Tech/Burny.tech.git',
-    repoLabel: 'aws开发博客',
+    repoLabel: 'GitHub',
     //  logo: '/images/log.png'
 
 
     sidebar: {
-      '/group/': [
+      '/debris/': [
         {
-          text: 'group all',
-          collapsible: true,
-          children: ['/group/test1/README.md', '/group/test1/test1.md'],
+          text: 'Java',
+          sidebarDepth: 5,
+          link: '/debris/java/'
+          // collapsible: true,
+          // children: [
+          //   '/debris/java/index.md',
+          //   '/debris/git/index.md'],
         },
         {
-          text: 'buall all',
-          collapsible: true,
-          children: ['/group/test2/README.md', '/group/test2/test2.md'],
+          text: 'SpringBoot',
+          link: '/debris/SpringBoot'
         },
-      ],
+        {
+          text: '运维部署',
+          link: '/debris/sh',
+          sidebarDepth: 5,
+          children: [
+            {
+              text: 'gogs迁移gitlab',
+              sidebarDepth: 5,
+              link: '/debris/sh/gogs2gitlab'
+            },
+            {
+              text: 'yum更改源',
+              link: '/debris/sh/yum'
+            },
+            {
+              text: 'docker',
+              link: '/debris/sh/docker',
+            }
+          ]
+        },
+        // {
+        //   title: "/debris/sh/docker",
+        //   children: [
+        //     {
+        //       title: 'aaa',
+        //       path: '/debris/sh/docker'
+        //     }
+        //   ]
+        // }
+        // ,
+        {
+          text: 'git',
+          link: '/debris/git'
+        }
+        // {
+        //   text: 'buall all',
+        //   collapsible: true,
+        //   children: ['/group/test2/README.md', '/group/test2/test2.md'],
+        // },
+      ]
+
+
     },
     sidebarDepth: 3,
     editLink: true,
@@ -94,9 +124,9 @@ module.exports = {
     lastUpdated: true,
     lastUpdatedText: '最近更新时间自定义',
     //贡献者列表
-    contributors: true,
-    contributorsText: '贡献者列表',
-    notFound: ['m没有找到自定义', 'meiyou2'],
+    //contributors: true,
+    //contributorsText: '贡献者列表',
+    notFound: ['暂无此页', '暂无此页'],
     backToHome: '回到首页',
     openInNewWindow: '打开新窗口',
     toggleColorMode: '切换主题',
@@ -132,14 +162,10 @@ module.exports = {
     prismjsPlugin({
       // 配置项
     }),
-     shikiPlugin({
+    shikiPlugin({
       // 配置项
-       IThemeRegistration: 'nord'
+      IThemeRegistration: 'nord'
     }),
-
-
-
-
   ]
 
 
