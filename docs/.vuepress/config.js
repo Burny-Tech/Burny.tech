@@ -92,6 +92,9 @@ module.exports = {
             {
               text: 'docker',
               link: '/debris/sh/docker',
+            }, {
+              text: 'security',
+              link: '/system'
             }
           ]
         },
