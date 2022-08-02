@@ -32,26 +32,10 @@ module.exports = {
         text: '碎片化笔记',
         link: '/debris'
       },
-      // 字符串 - 页面文件路径
-      // '/bar/README.md',
-      // {
-      //   text: '知识库',
-      //   children: [
-      //     {
-      //       text: 'Always active',
-      //       link: '/',
-      //       // 该元素将一直处于激活状态
-      //       activeMatch: '/',
-      //     },
-      //     {
-      //       text: 'Active on /',
-      //       link: '/not-foo/',
-      //       // 该元素在当前路由路径是 /foo/ 开头时激活
-      //       // 支持正则表达式
-      //       activeMatch: '^/foo/',
-      //     },
-      //   ],
-      // },
+      {
+        text: '系统学习的笔记',
+        link: '/system'
+      },
     ],
     // colorMode: 'auto' 
     logo: '/images/icon/android-chrome-192x192.png', //左上角 
@@ -66,10 +50,6 @@ module.exports = {
           text: 'Java',
           sidebarDepth: 5,
           link: '/debris/java/'
-          // collapsible: true,
-          // children: [
-          //   '/debris/java/index.md',
-          //   '/debris/git/index.md'],
         },
         {
           text: 'SpringBoot',
@@ -92,32 +72,26 @@ module.exports = {
             {
               text: 'docker',
               link: '/debris/sh/docker',
-            }, {
-              text: 'security',
-              link: '/system'
             }
           ]
         },
-        // {
-        //   title: "/debris/sh/docker",
-        //   children: [
-        //     {
-        //       title: 'aaa',
-        //       path: '/debris/sh/docker'
-        //     }
-        //   ]
-        // }
-        // ,
         {
           text: 'git',
           link: '/debris/git'
         }
-        // {
-        //   text: 'buall all',
-        //   collapsible: true,
-        //   children: ['/group/test2/README.md', '/group/test2/test2.md'],
-        // },
+
+      ],
+      '/system': [
+        {
+          text: 'SpringSecurity',
+          link: '/system/SpringSecurity'
+        }, {
+          text: 'Gradle',
+          link: '/system/gradle',
+        }
+
       ]
+
 
 
     },
