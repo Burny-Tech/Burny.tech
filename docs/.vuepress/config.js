@@ -1,4 +1,5 @@
-const { defaultTheme } = require('vuepress')
+// const { defaultTheme } = require('vuepress')
+const { defaultTheme } = require('@vuepress/theme-default')
 const { backToTopPlugin } = require('@vuepress/plugin-back-to-top')
 const { externalLinkIconPlugin } = require('@vuepress/plugin-external-link-icon')
 const { mediumZoomPlugin } = require('@vuepress/plugin-medium-zoom')
@@ -13,13 +14,17 @@ const { shikiPlugin } = require('@vuepress/plugin-shiki')
 module.exports = {
   lang: 'zh-CN',
   base: "/",
-  title: '开发知识库笔记',
-  description: '开发知识库笔记',
+  title: 'Burny',
+  description: 'Burny',
   head: [
     ['link', { rel: 'manifest', href: '/manifest.webmanifest' }],
     ['meta', { name: 'theme-color', content: '#3eaf7c' }],
   ],
   displayAllHeaders: false,
+
+  open: true,
+  debug: true,
+  port:80,
 
   theme: defaultTheme({
     // 默认主题配置
