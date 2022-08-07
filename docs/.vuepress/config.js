@@ -93,6 +93,9 @@ module.exports = {
         }, {
           text: 'Gradle',
           link: '/system/gradle',
+        }, {
+          text: 'RabbitMq',
+          link: '/system/rabbitmq'
         }
 
       ]
@@ -100,7 +103,7 @@ module.exports = {
 
 
     },
-    sidebarDepth: 3,
+    sidebarDepth: 6,
     editLink: true,
     editLinkText: '编辑此页',
     lastUpdated: true,
