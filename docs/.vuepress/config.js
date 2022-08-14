@@ -77,6 +77,9 @@ module.exports = {
             {
               text: 'docker',
               link: '/debris/sh/docker',
+            }, {
+              text: 'freeSSL',
+              link: '/debris/sh/ssl',
             }
           ]
         },
