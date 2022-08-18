@@ -20,11 +20,11 @@ module.exports = {
     ['link', { rel: 'manifest', href: '/manifest.webmanifest' }],
     ['meta', { name: 'theme-color', content: '#3eaf7c' }],
   ],
-  displayAllHeaders: false,
+  displayAllHeaders: true,
 
-  open: true,
+  open: false,
   debug: true,
-  port:80,
+  port: 80,
 
   theme: defaultTheme({
     // 默认主题配置
@@ -44,68 +44,68 @@ module.exports = {
     ],
     // colorMode: 'auto' 
     logo: '/images/icon/android-chrome-192x192.png', //左上角 
-    repo: 'https://github.com/Burny-Tech/Burny.tech.git',
+    // repo: 'https://github.com/Burny-Tech/Burny.tech.git', //右上角的
     repoLabel: 'GitHub',
     //  logo: '/images/log.png'
+
 
 
     sidebar: {
       '/debris/': [
         {
           text: 'Java',
-          sidebarDepth: 5,
-          link: '/debris/java/'
+          link: '/debris/java//index.md'
         },
         {
           text: 'SpringBoot',
-          link: '/debris/SpringBoot'
+          link: '/debris/SpringBoot/index.md'
         },
         {
           text: '运维部署',
-          link: '/debris/sh',
+          link: '/debris/sh/gogs2gitlab/index.md',
           sidebarDepth: 5,
+          collapsable: false,
           children: [
             {
               text: 'gogs迁移gitlab',
               sidebarDepth: 5,
-              link: '/debris/sh/gogs2gitlab'
+              link: '/debris/sh/gogs2gitlab/index.md'
             },
             {
               text: 'yum更改源',
-              link: '/debris/sh/yum'
+              link: '/debris/sh/yum/index.md'
             },
             {
               text: 'docker',
-              link: '/debris/sh/docker',
+              link: '/debris/sh/docker/index.md',
             }, {
               text: 'freeSSL',
-              link: '/debris/sh/ssl',
+              link: '/debris/sh/ssl/index.md',
             }
           ]
         },
         {
           text: 'git',
-          link: '/debris/git'
+          link: '/debris/git/index.md'
         }
 
       ],
       '/system': [
         {
           text: 'SpringSecurity',
-          link: '/system/SpringSecurity'
+          link: '/system/SpringSecurity/index.md'
         }, {
           text: 'Gradle',
-          link: '/system/gradle',
+          link: '/system/gradle/index.md',
         }, {
           text: 'RabbitMq',
-          link: '/system/rabbitmq'
+          link: '/system/rabbitmq/index.md'
         }
 
-      ]
-
-
+      ],
 
     },
+
     sidebarDepth: 6,
     editLink: true,
     editLinkText: '编辑此页',

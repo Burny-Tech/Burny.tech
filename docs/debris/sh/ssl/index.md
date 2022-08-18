@@ -6,31 +6,30 @@ description:  freeSSL 配置
 [[toc]]
 
 [FreeSSL官网]( https://freessl.cn/)
-
-#### 下载manager客户端
+###  下载manager客户端
 [keyManager官网,下载客户端](https://keymanager.org/)
 
 
-#### 填写域名
+### 填写域名
 ![](/images/system/freeSSL/0001.png)
-#### 在客户端里离线生成
+### 在客户端里离线生成
 ![](/images/system/freeSSL/0002.png)
-#### 生成完回浏览器
+### 生成完回浏览器
 ![](/images/system/freeSSL/0003.png)
-#### 往下滑动，将以下值填入域名解析中填完回到freessl页面点击检测一下代表，解析是否成功，但证书还未颁发需要 点击验证
+### 往下滑动，将以下值填入域名解析中填完回到freessl页面点击检测一下代表，解析是否成功，但证书还未颁发需要 点击验证
 ![](/images/system/freeSSL/0004.png)  
 ![](/images/system/freeSSL/0010.png)    
-#### 颁发如下
+### 颁发如下
 ![](/images/system/freeSSL/0005.png)  
-#### 查看证书
+### 查看证书
 ![](/images/system/freeSSL/0006.png)  
-#### 导出证书
+### 导出证书
 ![](/images/system/freeSSL/0007.png)  
-#### 将证书导出并重命名，上传到服务器上
+### 将证书导出并重命名，上传到服务器上
 ![](/images/system/freeSSL/0008.png)  
 ![](/images/system/freeSSL/0009.png)  
 
-#### nginx 配置如下
+### nginx 配置如下
 
 ```sh
 server {
@@ -57,7 +56,7 @@ location / {
 ```
 
 
-#### 遇到的问题
+### 遇到的问题
 1. nginx没有安装ssl模块
 
 ```sh

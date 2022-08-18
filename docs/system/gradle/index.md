@@ -420,7 +420,7 @@ ext{
 
 ####  项目发布
 
-# 这个明天需要复制一下（以下三个问题）
+
 
 ```
 plunins{
@@ -439,6 +439,124 @@ plunins{
 spring-boot-gradle-plugin 插件
 
 整个脚本文件的最上面
+
+
+#### build.gradle
+```java
+//父
+
+plugins {
+	id 'org.springframework.boot' version '2.7.2'
+	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+	id 'java'
+	id 'war'
+	id "com.github.shalousun.smart-doc" version "2.4.5"
+}
+
+dependencies {
+	implementation project(':data-commons')
+
+	implementation 'com.alibaba.fastjson2:fastjson2:2.0.11'
+	implementation "org.springframework.boot:spring-boot-starter-web"
+	// https://mvnrepository.com/artifact/com.aliyun/tea
+	implementation 'com.aliyun:tea:1.1.14'
+	// https://mvnrepository.com/artifact/com.aliyun/tea-util
+	implementation 'com.aliyun:tea-util:0.2.13'
+	// https://mvnrepository.com/artifact/com.aliyun/tea-openapi
+	implementation 'com.aliyun:tea-openapi:0.2.5'
+	// https://mvnrepository.com/artifact/com.aliyun/dysmsapi20170525
+	implementation 'com.aliyun:dysmsapi20170525:2.0.16'
+
+	implementation "cn.hutool:hutool-core:5.8.5"
+	implementation 'com.alibaba:easyexcel:3.1.1'
+	implementation "org.springframework.boot:spring-boot-starter-security"
+	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+	implementation 'mysql:mysql-connector-java:8.0.30'
+	implementation "org.springframework.boot:spring-boot-starter-oauth2-resource-server"
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'javax.validation:validation-api:2.0.1.Final'
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.apache.commons:commons-pool2:2.11.1'
+
+	providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.security:spring-security-test'
+}
+tasks.withType(JavaCompile) {    options.encoding = 'UTF-8' }
+
+
+test {
+	useJUnitPlatform()
+}
+
+
+```
+
+#### settings.gradle
+
+```java
+pluginManagement {
+    repositories {
+        maven {
+            url "https://maven.aliyun.com/repository/public"
+        }
+        maven {
+            url 'https://maven.aliyun.com/repository/gradle-plugin'
+        }
+        gradlePluginPortal()
+    }
+}
+rootProject.name = 'spring-authorization-server'
+include 'authorization-server'
+include 'messages-client'
+include 'messages-resource'
+include 'data-commons'
+include 'system-service'
+
+```
+
+#### idea gradle乱码  重要的是：需要重启idea并且重启电脑
+
+* **idea**  :  `help ->  vmoptions` 添加   -Dfile.encoding=UTF-8
+
+* idea 安装目录下： `idea64.exe.vmoptions`    添加   -Dfile.encoding=UTF-8
+
+* 运行gradle 前添加参数
+
+  
+
+ ![gradle](/images/system/gradle/001.png)
+
+* `build.gradle`配置
+
+
+
+```java
+compileJava.options.encoding "UTF-8"
+compileTestJava.options.encoding "UTF-8"
+#编译时采用的字符集
+tasks.withType(JavaCompile){
+	options.encoding="UTF-8"
+}
+tasks.withType(Javadoc){
+	options.encoding="UTF-8"
+}
+```
+
+* `gradlew.bat`
+
+  ![](/images/system/gradle/002.png)
+
+* `gradle` 安装目录下： bin/gradle.bat
+
+  ![](/images/system/gradle/003.png)
+
+  
+
+  
+
+  
 
 
 
