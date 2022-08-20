@@ -8,6 +8,7 @@ const { registerComponentsPlugin } = require('@vuepress/plugin-register-componen
 const { docsearchPlugin } = require('@vuepress/plugin-docsearch')
 const { prismjsPlugin } = require('@vuepress/plugin-prismjs')
 const { shikiPlugin } = require('@vuepress/plugin-shiki')
+// const { tocPlugin } = require('@mdit-vue/plugin-toc');
 
 
 
@@ -23,10 +24,14 @@ module.exports = {
   ],
   displayAllHeaders: true,
 
-
+  markdown: {
+    toc: {
+      includeLevel: [1, 2, 3, 4, 5, 6, 7, 8],
+    }
+  },
 
   open: false,
-  // debug: true,
+  debug: true,
   port: 80,
 
   theme: defaultTheme({
@@ -38,78 +43,89 @@ module.exports = {
       },
       {
         text: '碎片化笔记',
-        activeMatch: '/debris',
-        link: '/debris/git/index.md'
+        link: '/debris/'
       },
       {
         text: '系统学习的笔记',
-        activeMatch: '/system',
-        link: '/system/gradle/index.md'
+        link: '/system/'
       },
     ],
 
-    sidebar: {
-      '/debris/': [
-        {
-          text: 'git',
-          // collapsible: true,
-          children: [
-            '/debris/git/index.md',
-          ]
-        },
-        {
-          text: 'sh',
-          // collapsible: true,
-          children: [
-            '/debris/sh/docker/index.md',
-            '/debris/sh/gogs2gitlab/index.md',
-            '/debris/sh/ssl/index.md',
-            '/debris/sh/yum/index.md',
-
-          ]
-        }
-      ],
-      '/system/': [
-        {
-          text: 'gradle',
-          children: ['/system/gradle/index.md']
-        },
-        {
-          text: 'rabbitmq',
-          children: ['/system/rabbitmq/index.md']
-        },
-        {
-          text: 'SpringSecurity',
-          children: ['/system/SpringSecurity/index.md']
-        }
-
-      ],
-      '/': ['']
-    },
-
     // colorMode: 'auto' 
-    // logo: '/images/icon/android-chrome-192x192.png', //左上角 
+    logo: '/images/icon/android-chrome-192x192.png', //左上角 
     // repo: 'https://github.com/Burny-Tech/Burny.tech.git', //右上角的
     repoLabel: 'GitHub',
     //  logo: '/images/log.png'
 
 
 
+    sidebar: {
+      '/debris/': [
+        {
+          text: 'Java',
+          link: '/debris/java//index.md'
+        },
+        {
+          text: 'SpringBoot',
+          link: '/debris/SpringBoot/index.md'
+        },
+        {
+          text: '运维部署',
+          link: '/debris/sh/gogs2gitlab/index.md',
+          sidebarDepth: 5,
+          collapsable: false,
+          children: [
+            {
+              text: 'gogs迁移gitlab',
+              sidebarDepth: 5,
+              link: '/debris/sh/gogs2gitlab/index.md'
+            },
+            {
+              text: 'yum更改源',
+              link: '/debris/sh/yum/index.md'
+            },
+            {
+              text: 'docker',
+              link: '/debris/sh/docker/index.md',
+            }, {
+              text: 'freeSSL',
+              link: '/debris/sh/ssl/index.md',
+            }
+          ]
+        },
+        {
+          text: 'git',
+          link: '/debris/git/index.md'
+        }
 
+      ],
+      '/system': [
+        {
+          text: 'SpringSecurity',
+          link: '/system/SpringSecurity/index.md'
+        }, {
+          text: 'Gradle',
+          link: '/system/gradle/index.md',
+        }, {
+          text: 'RabbitMq',
+          link: '/system/rabbitmq/index.md'
+        },
+      ],
+
+    },
 
     sidebarDepth: 6,
-    editLink: false,
-    // editLinkText: '编辑此页',
-    lastUpdated: false,
-    // lastUpdatedText: '最近更新时间自定义',
+    editLink: true,
+    editLinkText: '编辑此页',
+    lastUpdated: true,
+    lastUpdatedText: '最近更新时间自定义',
     //贡献者列表
-    contributors: false,
+    //contributors: true,
     //contributorsText: '贡献者列表',
     notFound: ['暂无此页', '暂无此页'],
     backToHome: '回到首页',
     openInNewWindow: '打开新窗口',
     toggleColorMode: '切换主题',
-
 
 
 
@@ -146,12 +162,13 @@ module.exports = {
       // 配置项
       IThemeRegistration: 'nord'
     }),
+    // tocPlugin({
+    //   level: [2, 3],
+    // }),
+  ]
 
-  ],
 
-  markdown: {
-    level: [2, 3, 4, 5, 6]
-  }
+
 
 
 

@@ -7,6 +7,7 @@
 
 https://packagecloud.io/rabbitmq/erlang/install#bash-rpm
 
+
 [[toc]]
 
 
@@ -474,7 +475,7 @@ public class Producer {
 
 #### 手动应答
 
-> s手动应答的方式可以减少网络拥堵
+> 手动应答的方式可以减少网络拥堵
 
 ##### 消息应答的方法
 
@@ -498,7 +499,229 @@ channel.basicReject(long deliveryTag, boolean requeue); // 不处理该消息了
 
 如果消费者由于某些原因失去链接,其通道已关闭,链接已关闭或TCP链接丢失,导致消息未发送ACK确认,mq将了解到消息未完全处理,并将其对重新怕对.如果此时其他消费者可以处理,它将很快重新分发给另一个消费者,这样,即使某个消费者偶尔死亡,也可以确保不会丢失任何消息.
 
+##### 代码一:启动报错
 
+```java
+channel.queueDeclare(queue_name, true, true, false, null);
+```
+
+> 生产者端将queueDeclare  exclusive 即第三个参数改为true 启动报错.
+
+
+::: details 点击查看代码
+```java
+
+
+20:46:34.857 [main] DEBUG com.rabbitmq.client.impl.ConsumerWorkService - Creating executor service with 4 thread(s) for consumer work service
+Exception in thread "main" java.io.IOException
+	at com.rabbitmq.client.impl.AMQChannel.wrap(AMQChannel.java:129)
+	at com.rabbitmq.client.impl.AMQChannel.wrap(AMQChannel.java:125)
+	at com.rabbitmq.client.impl.AMQChannel.exnWrappingRpc(AMQChannel.java:147)
+	at com.rabbitmq.client.impl.ChannelN.queueDeclare(ChannelN.java:968)
+	at com.rabbitmq.client.impl.recovery.AutorecoveringChannel.queueDeclare(AutorecoveringChannel.java:343)
+	at com.burny.rabbitmq.two_work_queues.Producer.main(Producer.java:26)
+Caused by: com.rabbitmq.client.ShutdownSignalException: channel error; protocol method: #method<channel.close>(reply-code=405, reply-text=RESOURCE_LOCKED - cannot obtain exclusive access to locked queue 'hello' in vhost '/'. It could be originally declared on another connection or the exclusive property value does not match that of the original declaration., class-id=50, method-id=10)
+	at com.rabbitmq.utility.ValueOrException.getValue(ValueOrException.java:66)
+	at com.rabbitmq.utility.BlockingValueOrException.uninterruptibleGetValue(BlockingValueOrException.java:36)
+	at com.rabbitmq.client.impl.AMQChannel$BlockingRpcContinuation.getReply(AMQChannel.java:502)
+	at com.rabbitmq.client.impl.AMQChannel.privateRpc(AMQChannel.java:293)
+	at com.rabbitmq.client.impl.AMQChannel.exnWrappingRpc(AMQChannel.java:141)
+	... 3 more
+Caused by: com.rabbitmq.client.ShutdownSignalException: channel error; protocol method: #method<channel.close>(reply-code=405, reply-text=RESOURCE_LOCKED - cannot obtain exclusive access to locked queue 'hello' in vhost '/'. It could be originally declared on another connection or the exclusive property value does not match that of the original declaration., class-id=50, method-id=10)
+	at com.rabbitmq.client.impl.ChannelN.asyncShutdown(ChannelN.java:517)
+	at com.rabbitmq.client.impl.ChannelN.processAsync(ChannelN.java:341)
+	at com.rabbitmq.client.impl.AMQChannel.handleCompleteInboundCommand(AMQChannel.java:182)
+	at com.rabbitmq.client.impl.AMQChannel.handleFrame(AMQChannel.java:114)
+	at com.rabbitmq.client.impl.AMQConnection.readFrame(AMQConnection.java:739)
+	at com.rabbitmq.client.impl.AMQConnection.access$300(AMQConnection.java:47)
+	at com.rabbitmq.client.impl.AMQConnection$MainLoop.run(AMQConnection.java:666)
+	at java.lang.Thread.run(Thread.java:748)
+
+```
+:::
+
+##### 代码二:同一个信道可以作为接收信道和发送信道
+
+```java
+//骚操作
+public class Producer {
+
+    //队列名称
+    public static final String queue_name = "hello";
+
+    public static final String content = "hello world";
+
+    public static void main(String[] args) throws Exception {
+        Channel channel = Info.getC();
+        //exclusive:消息是否被共享
+        channel.queueDeclare(queue_name, true, false, false, null);
+        DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+            log.info(Info.pre + new String(delivery.getBody()));
+            long deliveryTag = delivery.getEnvelope().getDeliveryTag();
+            log.info(String.valueOf(deliveryTag));
+            channel.basicAck(delivery.getEnvelope().getDeliveryTag(),false);
+        };
+        CancelCallback callback = (consumerTag) -> {
+            log.info(Info.callback);
+        };
+
+        Scanner scanner = new Scanner(System.in);
+        while (scanner.hasNext()) {
+            String next = scanner.next();
+            for (int i = 0; i < 1000000; i++) {
+                log.info("发送一次"+i);
+                //同一个信道又发送又接收.发送还是
+                channel.basicPublish("", queue_name, null, (next + i).getBytes("UTF-8"));
+                channel.basicConsume(Info.queue_name, false, deliverCallback, callback);
+                //byte[] body = channel.basicGet(queue_name, false).getBody();
+                //log.info("pro"+new String(body));
+            }
+        }
+
+    }
+
+}
+
+```
+
+##### 代码三:正常的生产端和消费端
+
+::: details 工具类
+```java
+package com.burny.rabbitmq.common;
+
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import lombok.SneakyThrows;
+
+/**
+ * @Note TODO
+ * @Author cyx
+ * @Date 2022/8/18 22:55
+ */
+
+public class Info {
+    public static final String ip = "192.168.1.176";
+    public static final String username = "root";
+    public static final String password = "root";
+
+    public static final String queue_name = "hello";
+
+    public static final String pre = "接收到消息: ";
+
+    public static final String callback = "消费者取消消费的回调";
+
+
+    @SneakyThrows
+    public static Channel getC() {
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost(ip);
+        factory.setUsername(username);
+        factory.setPassword(password);
+        //创建连接
+        Connection connection = factory.newConnection();
+        //获取信道
+        Channel channel = connection.createChannel();
+        return channel;
+    }
+
+
+}
+
+```
+:::
+
+:::: code-group
+::: code-group-item 生产者
+```java
+package com.burny.rabbitmq.two_work_queues;
+
+import com.burny.rabbitmq.common.Info;
+import com.rabbitmq.client.CancelCallback;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.DeliverCallback;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.Scanner;
+
+/**
+ * @Note TODO
+ * @Author cyx
+ * @Date 2022/8/17 23:46
+ */
+
+@Slf4j
+public class Producer {
+
+    public static void main(String[] args) throws Exception {
+        Channel channel = Info.getC();
+        //exclusive:消息是否被共享
+        channel.queueDeclare(Info.queue_name, true, false, false, null);
+        Scanner scanner = new Scanner(System.in);
+        while (scanner.hasNext()) {
+            String next = scanner.next();
+            for (int i = 0; i < 1000000; i++) {
+                log.info("发送一次"+i);
+                channel.basicPublish("", Info.queue_name, null, (next + i).getBytes("UTF-8"));
+            }
+        }
+
+    }
+
+}
+
+
+```
+:::
+::: code-group-item 消费者
+```java
+package com.burny.rabbitmq.two_work_queues;
+
+import com.burny.rabbitmq.common.Info;
+import com.rabbitmq.client.CancelCallback;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.DeliverCallback;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.UUID;
+
+/**
+ * @Note TODO
+ * @Author cyx
+ * @Date 2022/8/18 23:05
+ */
+
+@Slf4j
+public class Worker01 {
+
+
+    @SneakyThrows
+    public static void main(String[] args) {
+        Channel channel = Info.getC();
+        DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+            log.info(Info.pre + new String(delivery.getBody()));
+            long deliveryTag = delivery.getEnvelope().getDeliveryTag();
+            log.info(String.valueOf(deliveryTag));
+            channel.basicAck(delivery.getEnvelope().getDeliveryTag(),false);
+        };
+        CancelCallback callback = (consumerTag) -> {
+            log.info(Info.callback);
+        };
+        channel.basicConsume(Info.queue_name, false, deliverCallback, callback);
+
+    }
+}
+
+
+```
+:::
+::::
+
+
+
+#####  
 
 
 

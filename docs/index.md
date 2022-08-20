@@ -7,10 +7,10 @@ actionText: ....
 actionLink: /zh/guide/
 actions:
   - text: 碎片化笔记
-    link: /debris
+    link: /debris/git/index.md
     type: secondary
   - text: 记录笔记
-    link: /system
+    link: /system/gradle/index.md
     type: secondary
 # - title: Vue驱动
 #   details: 享受 Vue + webpack 的开发体验，在 Markdown 中使用 Vue 组件，同时可以使用 Vue 来开发自定义主题。
