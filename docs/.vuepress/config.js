@@ -76,7 +76,7 @@ module.exports = {
         },
         {
           text: 'rabbitmq',
-          children: ['/system/rabbitmq/index.md']
+          children: ['/system/rabbitmq/index2.md']
         },
         {
           text: 'SpringSecurity',
