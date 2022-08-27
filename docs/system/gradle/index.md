@@ -556,8 +556,15 @@ tasks.withType(Javadoc){
 
   
 
-  
+  #### gradle 找不到log.info
 
+  ```java
+  implementation "org.projectlombok:lombok:$lombokVersion"
+  annotationProcessor "org.projectlombok:lombok:$lombokVersion"
+  ```
+  
+  
+  
   
 
 

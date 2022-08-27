@@ -67,6 +67,14 @@ module.exports = {
             '/debris/sh/yum/index.md',
 
           ]
+        },
+        {
+          text: 'Java',
+          children: ['/debris/java/Java/index.md']
+        },
+        {
+          text: 'SpringJPA',
+          children: ['/debris/java/JPA/index.md']
         }
       ],
       '/system/': [
@@ -81,7 +89,8 @@ module.exports = {
         {
           text: 'SpringSecurity',
           children: ['/system/SpringSecurity/index.md']
-        }
+        },
+
 
       ],
       '/': ['']
