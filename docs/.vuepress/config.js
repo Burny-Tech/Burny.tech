@@ -26,7 +26,7 @@ module.exports = {
 
 
   open: false,
-  // debug: true,
+  debug: true,
   port: 80,
 
   theme: defaultTheme({

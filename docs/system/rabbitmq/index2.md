@@ -1,17 +1,16 @@
 # RabbitMq
-链接信息  
-
-[官网 ](https://www.rabbitmq.com/download.html)
-
-安装类似于mavensearch
-
-https://packagecloud.io/rabbitmq/erlang/install#bash-rpm
 
 
 [[toc]]
 
 
-#### 总体流程
+
+##  未解决事项
+
+###  [未解决事项1](#noSubmit1)
+
+## 总体流程
+
 * 入门
 * 核心
   * 工作模式
@@ -82,7 +81,21 @@ https://packagecloud.io/rabbitmq/erlang/install#bash-rpm
 
 **Exchange:** ``message``到达的第一站，根据分发规则，匹配查询表中的 ``routing key ``，分发消息到``queue中``，常用的类型有``direct(point-to point),topic(publish-subscibe) ``和``fanout(multicast)``模式。
 
-#### 安装下载
+## 安装下载
+
+
+
+链接信息  
+
+[官网 ](https://www.rabbitmq.com/download.html)
+
+安装类似于mavensearch
+
+https://packagecloud.io/rabbitmq/erlang/install#bash-rpm
+
+
+
+
 
 官网（https://www.rabbitmq.com/download.html）
 
@@ -174,7 +187,7 @@ guest 缺少权限
 
 
 
-# 几种模式
+#  几种模式
 
 ## 简单模式
 
@@ -2405,6 +2418,10 @@ D:\soft\jdk\jdk8\installpath\bin\java.exe -javaagent:D:\soft\idea\2022\ideaIU-20
 
 [注入Bean,创建交换机等](https://github.com/Burny-Tech/burny-rabbitmq/blob/%E5%BB%B6%E8%BF%9F%E9%98%9F%E5%88%97/burny-rabbitmq-01/src/main/java/com/burny/rabbitmq/nine_lazy_queue/TTLConfig.java)
 
+信息定义说明：busi_ex 、 busi_q 代表的是普通交换机 或者 普通队列； busi 取business 即业务的意思
+
+d 代表的是dead 即死信
+
 结果:
 
 ```java
@@ -2414,5 +2431,324 @@ D:\soft\jdk\jdk8\installpath\bin\java.exe -javaagent:D:\soft\idea\2022\ideaIU-20
 ```
 :::
 
+这里有一个需要注意地方
 
+```java
+  @Bean(Info.busi_queue2)
+    public Queue busi_queue2() {
+        return QueueBuilder
+                .durable(Info.busi_queue2)
+                .ttl(40 * 1000)
+                .expires(40*1000)
+                .deadLetterExchange(Info.dead_exchange)
+                .deadLetterRoutingKey(Info.rt_q1_to_d_ex)
+                .build();
+    }
+
+```
+
+如果是 ttl= expires的时间 不会打印消费内容
+
+```java
+2022-08-27 21:26:58.751  INFO 18360 --- [io-10001-exec-1] c.b.r.nine_lazy_queue.SendMsgController  : 当前时间2022-08-27T21:26:58.751,发送一条消息给两个TTL队列:我是发送内容
+2022-08-27 21:27:08.814  INFO 18360 --- [ntContainer#0-1] c.b.r.n.TTLConsumerListener              : 当前时间:2022-08-27T21:27:08.814,获取消息:10s我是发送内容
+```
+
+如果是ttl <  expires  都会打印
+
+```java
+2022-08-27 21:34:03.877  INFO 8568 --- [io-10001-exec-1] c.b.r.nine_lazy_queue.SendMsgController  : 当前时间2022-08-27T21:34:03.877,发送一条消息给两个TTL队列:我是发送内容
+2022-08-27 21:34:13.944  INFO 8568 --- [ntContainer#0-1] c.b.r.n.TTLConsumerListener              : 当前时间:2022-08-27T21:34:13.944,获取消息:10s我是发送内容
+2022-08-27 21:34:43.908  INFO 8568 --- [ntContainer#0-1] c.b.r.n.TTLConsumerListener              : 当前时间:2022-08-27T21:34:43.908,获取消息:40s我是发送内容
+```
+
+如果是ttl> expires  不会打印消费内容
+
+```java
+2022-08-27 21:26:58.751  INFO 18360 --- [io-10001-exec-1] c.b.r.nine_lazy_queue.SendMsgController  : 当前时间2022-08-27T21:26:58.751,发送一条消息给两个TTL队列:我是发送内容
+2022-08-27 21:27:08.814  INFO 18360 --- [ntContainer#0-1] c.b.r.n.TTLConsumerListener              : 当前时间:2022-08-27T21:27:08.814,获取消息:10s我是发送内容
+```
+
+
+
+
+
+#### 延迟队列优化--自定义延迟时间
+
+
+
+:warning:不可能是新增一个时间要求，例如某事件过期30s ,如果新增一个需求是过期1min .就新增一个队列.需要有一个队列适合任意时间.
+
+![](/images/system/rabbitmq/2604.png)
+
+上面说的问题。expire 和ttl 
+
+
+
+```java
+
+    @Bean(Info.busi_custtl_queue)
+    public Queue busi_custtl_queue() {
+        return QueueBuilder
+                .durable(Info.busi_custtl_queue)
+                .deadLetterExchange(Info.dead_exchange)
+                .deadLetterRoutingKey(Info.rt_b_custtl_to_d)
+                .build();
+    }
+
+    @Bean
+    public Binding busi_custtl_queue2dead_exchange(@Qualifier(Info.busi_custtl_queue) Queue busi_custtl_queue, @Qualifier(Info.busi_exchange) DirectExchange busi_exchange) {
+        return BindingBuilder.bind(busi_custtl_queue).to(busi_exchange).with(Info.rt_b_ex_to_custtl);
+    } 
+```
+
+```java
+
+    public static final String busi_custtl_queue = "busi_custtl_queue";
+    public static final String rt_b_ex_to_custtl = "rt_b_ex_to_custtl";
+    public static final String rt_b_custtl_to_d = "rt_b_custtl_to_d";
+```
+
+```java
+ @GetMapping("/sendMsg/{data}/{ttl}")
+    public void sendMsg(@PathVariable(value = "data") String data, @PathVariable(value = "ttl") Integer ttl) {
+        //log.info("当前时间{},发送一条消息给两个TTL队列:{}", LocalDateTime.now(), data);
+        //
+        //rabbitTemplate.convertAndSend(Info.busi_exchange, Info.rt_b_ex_to_q1,  data);
+        //rabbitTemplate.convertAndSend(Info.busi_exchange, Info.rt_b_ex_to_q2, data);
+        log.info("当前时间{},发送一条消息给自定义TTL队列,TTL 时间:{} ,消息内:{}", LocalDateTime.now(), ttl, data);
+
+        rabbitTemplate.convertAndSend(Info.busi_exchange, Info.rt_b_ex_to_custtl, data, message -> {
+            message.getMessageProperties().setExpiration(String.valueOf(ttl * 1000));
+            return message;
+        });
+
+    }
+```
+
+消费端代码不变.
+
+
+
+:warning:此种情况结果下并不会打印死信队列中被消费
+
+
+
+查看网上的说法:
+
+* ttl 队列有效期 (队头:过期即成为死信,转入死信队列.原来的队列就删除了)
+* expire 消息有效期(等到消费的时候才 去去校验是否过期,如果过期了才成为死信队列,再把原来的队列删除掉.而不是过期的时候就已经删除掉了.) 这个也说明了上述的验证 是打印不出来消息成为死信队列.
+* 
+
+```java
+
+
+当我们设置消息有效期之后，消息过期了就会从队列中删除了(进入死信队列)，但是两种方式对应的 删除时机有一些差异
+(1) 全局 ------ 消息进入 RabbitMQ 是存在一个消息队列中的，队列的头部是最早要过期的消息，所以 RabbitMQ 只需要一个定时任务，从头部开始扫描是否有过期消息，有的话就直接删除。
+(2) 局部 ------ 这种方式当消息过期时并不会立马被删除，而是当消息要投递给消费者的时候才会去删除。因为这种方式，每条消息的过期时间都不一样，想要知道哪条消息过期，必须要遍历队列中的所有消息才能实现，当消息比较多时这样就比较耗费性能了。因此对于这种方式，当消息需要投递给消费者时才去删除。
+————————————————
+版权声明：本文为CSDN博主「天怎么不会塌」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
+原文链接：https://blog.csdn.net/weixin_50983264/article/details/125283084
+
+```
+
+
+
+#### 基于死信队列存在的问题--惰性检查,队列先进先出
+
+惰性检查
+
+```dockerfile
+前提 约定当前时间为0s
+第一次发送  自定义过期时间  20 s
+立马发送第二次
+第二次发送  自定过期时间  2s
+结果
+  第一次 发送的内容  过期时间 为   20s 即在第20s 
+  第二次 发送的内容  过期时间 为   20s+2s    
+而不是
+第一次发送20s
+第二次发送2s
+接收第二次发送2s
+接收第一次发送20s
+```
+
+总结:前一个 发送的延迟时长  比后一个发送的延迟时长  长时,需要先执行前一个后再执行第二个.好比 数据结构总的队列.先进先出的特点
+
+#### rabbitmq 插件(rabbitmq_delayed_message_exchange)实现延迟队列
+
+##### 安装
+
+[插件首页](https://rabbitmq.com/community-plugins.html)
+
+[插件github下载](https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releases)
+
+[安装路径]  `/usr/lib/rabbitmq/lib/rabbitmq_server-3.10.7/plugins`
+
+``` java
+rabbitmq-plugins enable rabbitmq_delayed_message_exchange
+```
+
+![](/images/system/rabbitmq/1127.png)
+
+注意：安装时不需要带 .ex 不需要带版本号，不然会报找不到插件。也不要随意更改插件 文件 名称
+
+![](/images/system/rabbitmq/1357.png)
+
+![](/images/system/rabbitmq/1441.png)
+
+systemctl restart  rabbitmq-server
+
+**安装完 可以在交换机找到 延迟交换机(注意,之前是通过延迟队列形成.现在是直接放在了交换机)**
+
+![](/images/system/rabbitmq/2858.png)
+
+##### 实现
+
+![](/images/system/rabbitmq/3222.png)
+
+
+
+
+
+``` java
+package com.burny.rabbitmq.nine_lazy_queue;
+
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.CustomExchange;
+import org.springframework.amqp.core.Queue;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @Note TODO
+ * @Author cyx
+ * @Date 2022/8/28 0:34
+ */
+
+@Configuration
+public class DelayPlugin {
+
+    //自定义交换机  -延迟交换机
+    @Bean(Info.delay_exchange_name)
+    public CustomExchange delay_exchange_name(){
+        Map<String,Object> map=new HashMap<>();
+        //固定写法
+        map.put("x-delayed-type","direct");
+        //String name, String type, boolean durable, boolean autoDelete, Map<String, Object> arguments
+        return new CustomExchange(Info.delay_exchange_name,"x-delayed-message",false,false,map);
+    }
+
+    @Bean(Info.delay_queue_name)
+    public Queue delay_queue_name(){
+        return new Queue(Info.delay_queue_name);
+    }
+
+    @Bean
+    public Binding delay_exchange_name_to_delay_queue_name(@Qualifier(Info.delay_queue_name) Queue queue ,@Qualifier(Info.delay_exchange_name) CustomExchange customExchange){
+
+        return BindingBuilder.bind(queue).to(customExchange).with(Info.rt_delay_exchange_name_to_delay_queue_name).noargs();
+
+    }
+}
+```
+
+
+
+``` java
+
+    public static final String delay_queue_name = "delay_queue_name";
+    public static final String delay_exchange_name = "delay_exchange_name";
+    public static final String  rt_delay_exchange_name_to_delay_queue_name = "rt_delay_exchange_name_to_delay_queue_name";
+```
+
+:::code-group
+
+::: code-group-itme 生产者
+
+``` java
+    @GetMapping("/sendMsg/{data}/{ttl}")
+    public void sendMsg(@PathVariable(value = "data") String data, @PathVariable(value = "ttl") Integer ttl) {
+        //log.info("当前时间{},发送一条消息给两个TTL队列:{}", LocalDateTime.now(), data);
+        //
+        //rabbitTemplate.convertAndSend(Info.busi_exchange, Info.rt_b_ex_to_q1,  data);
+        //rabbitTemplate.convertAndSend(Info.busi_exchange, Info.rt_b_ex_to_q2, data);
+        log.info("当前时间{},发送一条消息给自定义TTL队列,TTL 时间:{} ,消息内:{}", LocalDateTime.now(), ttl, data);
+
+        //rabbitTemplate.convertAndSend(Info.busi_exchange, Info.rt_b_ex_to_custtl, data, message -> {
+        //    //message.getMessageProperties().setExpiration(String.valueOf(ttl * 1000));
+        //          message.getMessageProperties().setExpiration(String.valueOf(ttl * 1000));
+
+        //    return message;
+        //});
+
+        rabbitTemplate.convertAndSend(Info.delay_exchange_name,Info.rt_delay_exchange_name_to_delay_queue_name,data+ttl,propertis->{
+            //对比
+            ///     message.getMessageProperties().setExpiration(String.valueOf(ttl * 1000));
+
+            propertis.getMessageProperties().setDelay(ttl*1000);
+            return propertis;
+        });
+```
+
+
+
+:::
+
+:::code-group-item 消费者
+
+``` java
+
+    @RabbitListener(queues = Info.delay_queue_name)
+    public void delay(Message message, Channel channel) throws Exception {
+        String msg = new String(message.getBody(), StandardCharsets.UTF_8);
+        log.info("类型:{},当前时间:{},获取消息:{}", "延迟插件",LocalDateTime.now(), msg);
+    }
+```
+
+
+
+:::
+
+::: code-group-item
+
+``` java
+
+2022-08-28 00:55:59.135  INFO 4336 --- [io-10001-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-08-28 00:55:59.135  INFO 4336 --- [io-10001-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-08-28 00:55:59.138  INFO 4336 --- [io-10001-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+2022-08-28 00:55:59.248  INFO 4336 --- [io-10001-exec-1] c.b.r.nine_lazy_queue.SendMsgController  : 当前时间2022-08-28T00:55:59.248,发送一条消息给自定义TTL队列,TTL 时间:20 ,消息内:我是发送内容
+2022-08-28 00:56:01.567  INFO 4336 --- [io-10001-exec-3] c.b.r.nine_lazy_queue.SendMsgController  : 当前时间2022-08-28T00:56:01.567,发送一条消息给自定义TTL队列,TTL 时间:5 ,消息内:我是发送内容
+2022-08-28 00:56:06.599  INFO 4336 --- [ntContainer#1-1] c.b.r.n.TTLConsumerListener              : 类型:延迟插件,当前时间:2022-08-28T00:56:06.599,获取消息:我是发送内容5
+2022-08-28 00:56:06.802  INFO 4336 --- [io-10001-exec-5] c.b.r.nine_lazy_queue.SendMsgController  : 当前时间2022-08-28T00:56:06.802,发送一条消息给自定义TTL队列,TTL 时间:2 ,消息内:我是发送内容
+2022-08-28 00:56:08.807  INFO 4336 --- [ntContainer#1-1] c.b.r.n.TTLConsumerListener              : 类型:延迟插件,当前时间:2022-08-28T00:56:08.807,获取消息:我是发送内容2
+2022-08-28 00:56:19.274  INFO 4336 --- [ntContainer#1-1] c.b.r.n.TTLConsumerListener              : 类型:延迟插件,当前时间:2022-08-28T00:56:19.274,获取消息:我是发送内容20
+2022-08-28 01:00:15 JRebel: Reloading class 'com.burny.rabbitmq.nine_lazy_queue.SendMsgController'.
+
+```
+
+:::
+
+:::
+
+#### 总结
+
+利用延迟队列插件  比 TTL更符合日常的需求.
+
+延时队列其他选择
+
+* Java的DelayQueue
+* Resis 的zset
+* Quartz 
+* Kafka 时间轮
+
+####  <a name="noSubmit1"> TTL未实现事项</a>
+
+* expires 实现不了
+* setdelay(Integer ) 和 setExpire(String) 的区别
 
