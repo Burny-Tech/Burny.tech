@@ -34,7 +34,7 @@ yum install lrzsz# 上传下载组件
 
 #### 安装目录
 
-```shel
+```shell
 cd /usr/local/bin
 redis-benchmark  性能测试工具，可以在自己本子运行，看看自己本子性能如何；
 lrwxrwxrwx. 1 root root       12 9月  12 19:47 redis-check-aof -> redis-server 修复有问题的AOP文件
@@ -53,7 +53,7 @@ lrwxrwxrwx. 1 root root       12 9月  12 19:47 redis-sentinel -> redis-server r
 
 ctrl+c 即结束了
 
-```she
+```shell
 ./redis-server
 ```
 
