@@ -4,15 +4,15 @@ title: git碎片化笔记
 description: git碎片化笔记
 ---
 # git
+
 [[toc]]
 
 
 
 ## 回退远程仓库到上一个提交
 
-### gitss
-
 #### gitt
+
 ```sh
 # 查看是否还有哪些没提交或者修改
 git status  
@@ -29,5 +29,4 @@ git push origin  分支名称 --force
 
 # 本操作是提交删除操作，会把reset前的文件删除掉。而不会有生成新的提交记录
 ```
-
 

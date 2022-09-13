@@ -27,7 +27,7 @@ module.exports = {
 
   open: false,
   debug: true,
-  port: 80,
+  port: 10059,
 
   theme: defaultTheme({
     // 默认主题配置
@@ -65,6 +65,7 @@ module.exports = {
             '/debris/sh/gogs2gitlab/index.md',
             '/debris/sh/ssl/index.md',
             '/debris/sh/yum/index.md',
+            '/debris/sh/index.md'
 
           ]
         },

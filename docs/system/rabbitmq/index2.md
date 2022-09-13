@@ -1,6 +1,5 @@
 # RabbitMq
 
-
 [[toc]]
 
 
@@ -8,6 +7,30 @@
 ##  未解决事项
 
 ###  [未解决事项1](#noSubmit1)
+
+##  端口一览表
+
+```shell
+
+4369  Erlang端口  
+25672 集群通信端口  
+15672 Rabbitmq管理控制台端口  
+5672  Rabbitmq服务端口
+8100  HAProxy 配置监控页面绑定端口
+5671  HAProxy rabbitmq_cluster集群通信端口
+
+firewall-cmd  --zone=public --permanent --add-port=4369/tcp
+firewall-cmd  --zone=public --permanent --add-port=25672/tcp
+firewall-cmd  --zone=public --permanent --add-port=15672/tcp
+firewall-cmd  --zone=public --permanent --add-port=5672/tcp
+firewall-cmd  --zone=public --permanent --add-port=8100/tcp
+firewall-cmd  --zone=public --permanent --add-port=5671/tcp
+firewall-cmd --reload
+```
+
+
+
+
 
 ## 总体流程
 
@@ -2752,3 +2775,1366 @@ public class DelayPlugin {
 * expires 实现不了
 * setdelay(Integer ) 和 setExpire(String) 的区别
 
+## SpingBoot发布确认
+
+> RabbitMQ  交换机不存在 或者 队列不存在     生产者无法投
+
+> tips:以下只需要到达交换机就会返回确认.仅仅说明到达.
+>
+> 如果是交换机到队列有误,交换机也会返回确认收到
+>
+> 
+
+![](/images/system/rabbitmq/1808.png)
+
+```yml
+spring:
+  rabbitmq:
+    username: root
+    password: root
+    host: 192.168.1.176
+    port: 5672
+    virtual-host: /
+    connection-timeout: 20000
+    publisher-confirm-type: CORRELATED
+    
+    # 取值:
+    none:禁用发布确认模式,是默认值
+    correlated: 发布消息成功到交换机猴会出发回调方法
+    simple: 有两种效果(相当于之前用的同步确认)
+    		其一:与correalated 效果一致
+    		其二:发布消息成功后使用 rabbitTemplate调用waitForConfirms 或者 waitforconfirmsordie 方法 等待broker节点返回发送结果,根据返回结果来判定下一步的逻辑,要注意的点事waitForConfirmsOrDire 方法如果返回false 则会关闭 channel ,接下来服务法发送消息到broker.
+    		
+```
+
+:::: code-group
+
+::: code-group-item  配置
+
+```java
+package com.burny.rabbitmq.ten_confirm;
+
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.*;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * @Note TODO
+ * @Author cyx
+ * @Date 2022/8/28 9:51
+ */
+@Slf4j
+@Configuration
+public class Config {
+
+    @Bean(Info.busi_exchange)
+    public DirectExchange c_busi_exchange() {
+        return new DirectExchange(Info.busi_exchange);
+    }
+
+    @Bean(Info.busi_quque)
+    public Queue c_busi_quque() {
+        return QueueBuilder.durable(Info.busi_quque).build();
+    }
+
+    @Bean
+    public Binding busi_exchange_to_busi_quque(@Qualifier(Info.busi_quque) Queue busi_quque, @Qualifier(Info.busi_exchange) DirectExchange busi_exchange) {
+        return BindingBuilder.bind(busi_quque).to(busi_exchange).with(Info.busi_exchange_to_busi_quque);
+    }
+}
+
+
+```
+
+
+
+:::
+
+:::code-group-item 信息
+
+```java
+package com.burny.rabbitmq.ten_confirm;
+
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * @Note TODO
+ * @Author cyx
+ * @Date 2022/8/28 9:51
+ */
+@Slf4j
+public class Info {
+
+
+    //如果是持久化队列或者交换机,每次更滑pre 方便开发,不需要每次都delete 掉交换机或者队列
+    //public static  final  String  pre="a";
+
+    public static final String busi_exchange = "c_busi_exchange";
+    public static final String busi_quque = "c_busi_quque";
+    public static final String busi_exchange_to_busi_quque = "c_busi_exchange_to_busi_quque";
+
+
+}
+
+```
+
+
+
+:::
+
+:::code-group-item 生产端
+
+
+
+```java
+package com.burny.rabbitmq.ten_confirm;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.Correlation;
+import org.springframework.amqp.rabbit.connection.CorrelationData;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * @Note TODO
+ * @Author cyx
+ * @Date 2022/8/28 9:51
+ */
+@Slf4j
+@RestController
+@RequestMapping("/c")
+public class ProController {
+
+
+    @Autowired
+    RabbitTemplate rabbitTemplate;
+
+    @GetMapping("/{data}")
+    public void pro(@PathVariable String data) {
+        //for (int i = 0; i < 100; i++) {
+        //绑定id
+        CorrelationData correlationData=new CorrelationData();
+        correlationData.setId("id");
+        log.info("生产者:发送内容:{}", data);
+        data="生产者:"+data;
+        //发送正确
+        rabbitTemplate.convertAndSend(Info.busi_exchange, Info.busi_exchange_to_busi_quque, data,correlationData);
+        //错误的交换机 结果: 交换机确认回调:
+        //2022-08-28 13:57:24.607  INFO 24612 --- [nectionFactory6] c.b.r.ten_confirm.ExchangeCallBack       : 交换机确认回调:交换机已经收到消息并且处理失败,ID为id,原因:channel error; protocol method: #method<channel.close>(reply-code=404, reply-text=NOT_FOUND - no exchange 'c_busi_exchangeps' in vhost '/', class-id=60, method-id=40)
+        rabbitTemplate.convertAndSend(Info.busi_exchange+"ps", Info.busi_exchange_to_busi_quque, data,correlationData);
+        //错误的队列 (routingkey不同) 总结:只要到达交换机就确认
+        //结果
+        //2022-08-28 13:57:24.612  INFO 24612 --- [nectionFactory6] c.b.r.ten_confirm.ExchangeCallBack       : 交换机确认回调:交换机已经收到消息并且成功处理,ID为id
+        rabbitTemplate.convertAndSend(Info.busi_exchange, Info.busi_exchange_to_busi_quque+"sss", data,correlationData);
+        //}
+    }
+
+
+}
+
+```
+
+
+
+:::
+
+:::code-group-item消费端
+
+
+
+```java
+package com.burny.rabbitmq.ten_confirm;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
+
+import java.nio.charset.StandardCharsets;
+
+/**
+ * @Note TODO
+ * @Author cyx
+ * @Date 2022/8/28 9:52
+ */
+
+@Component
+@Slf4j
+public class Consumer {
+
+
+    @RabbitListener(queues = Info.busi_quque)
+    public void confirm(Message properties) {
+        log.info("消费者:接收到的内容:{}", new String(properties.getBody(), StandardCharsets.UTF_8));
+    }
+}
+
+```
+
+
+
+:::
+
+:::code-group-item 交换机确认配置
+
+
+
+```java
+package com.burny.rabbitmq.ten_confirm;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.connection.CorrelationData;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+
+import javax.annotation.PostConstruct;
+
+/**
+ * @Note 继承内部接口需要将该接口注入到rabbitmq里
+ * @Author cyx
+ * @Date 2022/8/28 10:44
+ */
+@Slf4j
+@Configuration
+public class ExchangeCallBack implements RabbitTemplate.ConfirmCallback {
+
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
+    @PostConstruct
+    public void init(){
+        rabbitTemplate.setConfirmCallback(this);
+    }
+
+    /**
+     *交换机确认回调
+     * 1.发送消息 交换机接收到了并且成功处理了 回调
+     *   参数
+     *   保存毁掉消息的ID以及相关信息
+     *    交换机收到消息 true
+     *    case null
+     *
+     * 2. 发送消息 交换机接收 但处理失败 回调
+     *   参数
+     *   保存毁掉消息的ID以及相关信息
+     *   fasle
+     *   错误原因
+     */
+
+    @Override
+    public void confirm(CorrelationData correlationData, boolean ack, String cause) {
+
+        if (ack){
+            log.info("交换机确认回调:交换机已经收到消息并且成功处理,ID为{}",correlationData!=null ? correlationData.getId():"");
+        }else{
+            log.info("交换机确认回调:交换机已经收到消息并且处理失败,ID为{},原因:{}",correlationData!=null ? correlationData.getId():"",cause);
+        }
+    }
+}
+
+```
+
+
+
+:::
+
+::::
+
+结果:
+
+:::details
+
+```java
+2022-08-28 14:12:48 JRebel: Reconfiguring bean 'proController' [com.burny.rabbitmq.ten_confirm.ProController]
+2022-08-28 14:12:48.474  INFO 24612 --- [io-10001-exec-6] c.b.rabbitmq.ten_confirm.ProController   : 生产者:发送内容:我是发送内容
+2022-08-28 14:12:48.514 ERROR 24612 --- [.168.1.176:5672] o.s.a.r.c.CachingConnectionFactory       : Shutdown Signal: channel error; protocol method: #method<channel.close>(reply-code=404, reply-text=NOT_FOUND - no exchange 'c_busi_exchangeps' in vhost '/', class-id=60, method-id=40)
+2022-08-28 14:12:48.585  INFO 24612 --- [nectionFactory7] c.b.r.ten_confirm.ExchangeCallBack       : 交换机确认回调:交换机已经收到消息并且成功处理,ID为id
+2022-08-28 14:12:48.589  INFO 24612 --- [ntContainer#3-1] com.burny.rabbitmq.ten_confirm.Consumer  : 消费者:接收到的内容:生产者:我是发送内容
+2022-08-28 14:12:48.598  INFO 24612 --- [nectionFactory7] c.b.r.ten_confirm.ExchangeCallBack       : 交换机确认回调:交换机已经收到消息并且成功处理,ID为id
+2022-08-28 14:12:48.599  INFO 24612 --- [nectionFactory8] c.b.r.ten_confirm.ExchangeCallBack       : 交换机确认回调:交换机已经收到消息并且处理失败,ID为id,原因:channel error; protocol method: #method<channel.close>(reply-code=404, reply-text=NOT_FOUND - no exchange 'c_busi_exchangeps' in vhost '/', class-id=60, method-id=40)
+
+```
+
+
+
+:::
+
+
+
+
+
+###  回退内容
+
+> 在仅开启了生产者确认机制的情况下,交换机接收消息猴,会直接给消息生产者发送确认消息,如果发现该消息不可路由,name消息会被直接丢弃,此时生产者是不知道消息被丢弃这个时间.
+
+解决办法:通过设置mandatory 参数可以在消息传递过程中不可达的目的地时将消息返回给生产者.
+
+
+
+yarn scp:prod
+rabbitmq-plugins enable /usr/lib/rabbitmq/lib/rabbitmq_server-3.10.7/plugins/rabbitmq_delayed_message_exchange-3.10.2.ez
+
+
+::::code-group
+
+:::code-group-item 配置
+
+```java
+与上一节一样
+
+```
+
+
+
+:::
+
+:::code-group-item 信息
+
+```java
+```
+
+
+
+:::
+
+:::code-group-item 生产端
+
+
+
+```java
+        rabbitTemplate.convertAndSend(Info.busi_exchange, Info.busi_exchange_to_busi_quque + "ddd", data, correlationData);
+
+```
+
+
+
+:::
+
+:::code-group-item消费端
+
+
+
+```java
+与上一节的消费者一样
+```
+
+
+
+:::
+
+:::code-group-item 交换机确认配置
+
+
+
+```java
+package com.burny.rabbitmq.ten_confirm;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.ReturnedMessage;
+import org.springframework.amqp.rabbit.connection.CorrelationData;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+
+import javax.annotation.PostConstruct;
+
+/**
+ * @Note 继承内部接口需要将该接口注入到rabbitmq里
+ * @Author cyx
+ * @Date 2022/8/28 10:44
+ */
+@Slf4j
+@Configuration
+public class ExchangeCallBack implements RabbitTemplate.ConfirmCallback, RabbitTemplate.ReturnsCallback {
+
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
+    @PostConstruct
+    public void init() {
+        rabbitTemplate.setConfirmCallback(this);
+        rabbitTemplate.setReturnsCallback(this);
+    }
+
+    /**
+     * 交换机确认回调
+     * 1.发送消息 交换机接收到了并且成功处理了 回调
+     * 参数
+     * 保存毁掉消息的ID以及相关信息
+     * 交换机收到消息 true
+     * case null
+     * <p>
+     * 2. 发送消息 交换机接收 但处理失败 回调
+     * 参数
+     * 保存毁掉消息的ID以及相关信息
+     * fasle
+     * 错误原因
+     */
+
+    @Override
+    public void confirm(CorrelationData correlationData, boolean ack, String cause) {
+
+        if (ack) {
+            log.info("交换机确认回调:交换机已经收到消息并且成功处理,ID为{}", correlationData != null ? correlationData.getId() : "");
+        } else {
+            log.info("交换机确认回调:交换机已经收到消息并且处理失败,ID为{},原因:{}", correlationData != null ? correlationData.getId() : "", cause);
+        }
+    }
+
+    //只有在不可达目的地的时候才进行回退
+    @Override
+    public void returnedMessage(ReturnedMessage returned) {
+        log.info("交换机与队列:有消息被回退 交换机:{},消息内容:{},退回原因:{},路由key:{}", returned.getExchange(), new String(returned.getMessage().getBody()), returned.getReplyCode() + returned.getReplyText(), returned.getRoutingKey());
+    }
+}
+
+```
+
+
+
+:::
+
+::: code-group-item yml
+
+```yaml
+spring:
+  rabbitmq:
+    username: root
+    password: root
+    host: 192.168.1.176
+    port: 5672
+    virtual-host: /
+    connection-timeout: 20000
+    publisher-confirm-type: CORRELATED
+    publisher-returns: true
+    template:
+      mandatory: true
+```
+
+
+
+:::
+
+::::
+
+
+
+:::details 结果
+
+```java
+2022-08-28 14:34:51.864  INFO 1156 --- [io-10001-exec-3] c.b.rabbitmq.ten_confirm.ProController   : 生产者:发送内容:我是发送内容
+2022-08-28 14:34:51.868  INFO 1156 --- [nectionFactory3] c.b.r.ten_confirm.ExchangeCallBack       : 交换机与队列:有消息被回退 交换机:c_busi_exchange,消息内容:生产者:我是发送内容,退回原因:312NO_ROUTE,路由key:c_busi_exchange_to_busi_ququeddd
+2022-08-28 14:34:51.869  INFO 1156 --- [nectionFactory4] c.b.r.ten_confirm.ExchangeCallBack       : 交换机确认回调:交换机已经收到消息并且成功处理,ID为id
+```
+
+
+
+:::
+
+
+
+### 备份交换机
+
+> 有了mandatory 参数和回退消息.我们获得了对无法投递消息的感知能力,有机会在生产者的刁曦无法被投递时发现并处理.但有时候我们并不知道该如何处理这些无法路由的消息,最多打个日志.然后触发报警,再来手动处理.而通过日志来处理这无法路由的消息是很不优雅的做法,特别是当生产者所在的服务有多台机器的时候,手动复制日志会更加麻烦而且容易出错.而且设置mandatory 参数会增加生产者的复杂性,,需要添加处理这些被回退的的消息的逻辑,如果既不想丢失信息,又不想增加生产者的处理失败的消息,
+
+> 前面在设置死信队列的文章中,可以为队列设置死信家换季来存储哪些处理失败的消息,可是这些不可路由的消息根本没有机会进入到队列,因此无法使用死信队列来保存消息
+
+> 在RabbitMQzhong ,有一种备份交换机的机制存在,可以很好的应对这个问题.什么事备份交换机呢?备份交换机可以理解为RabbitM中家交换机的备胎,当我们为某一个交换机声明一个对应的备份交换机是,就是为他创建一个备胎,当交换机接收到一条不可路由消息时,将会把这条消息转发到备份交换机中,由备份交换机来进行转发和处理.**通常备份交换机的类型为Fanout**.这样就能把所有消息都投递到与其绑定的队列中,然后我们在备份交换机下绑定一个队列,这样所有哪些原交换机无法被路由的消息,就会都进入这个队列了.当然,我们还可以建立一个报警队列,利用独立的消费者来进行检测和报警.
+
+
+
+
+
+
+
+
+
+![](/images/system/rabbitmq/0014.png)
+
+:::: code-group
+:::  code-group-item  生产端
+
+```java
+package com.burny.rabbitmq.ele_backexchange;
+
+
+import org.springframework.amqp.rabbit.connection.CorrelationData;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * @Note TODO
+ * @Author cyx
+ * @Date 2022/9/7 10:59
+ */
+
+@RestController
+@RequestMapping("/back")
+public class ProController2 {
+
+
+
+    @Autowired
+    RabbitTemplate rabbitTemplate;
+
+    @GetMapping("/{data}")
+    public void pro(@PathVariable String data) {
+        CorrelationData correlationData = new CorrelationData();
+       // http://localhost:10009/back/%E6%88%91%E6%98%AF%E5%8F%91%E9%80%81%E5%86%85%E5%AE%B9
+        //发送可达的信息
+        rabbitTemplate.convertAndSend(Info.confirm_exchange, Info.rt_confirm_exchange_confirm_queue + "ddd", data, correlationData);
+        //发送不可达的信息
+        rabbitTemplate.convertAndSend(Info.confirm_exchange, Info.rt_confirm_exchange_confirm_queue , data, correlationData);
+
+
+    }
+}
+
+```
+:::
+:::  code-group-item  消费者
+
+```java
+package com.burny.rabbitmq.ele_backexchange;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
+
+import java.nio.charset.StandardCharsets;
+
+/**
+ * @Note 备份交换机报警队列
+ * @Author cyx
+ * @Date 2022/9/7 11:05
+ */
+
+@Slf4j
+@Component
+public class Consumer2 {
+
+
+    @RabbitListener(queues = Info.back_warn_queue)
+    public void receiW(Message message){
+        log.warn("备份队列之报警队列收到信息：{}",new String(message.getBody()));
+    }
+
+    @RabbitListener(queues = Info.confirm_queue)
+    public void confirm(Message properties) {
+        log.info("消费者:接收到的内容:{}", new String(properties.getBody(), StandardCharsets.UTF_8));
+    }
+    @RabbitListener(queues = Info.back_queue)
+    public void back(Message properties) {
+        log.info("备份队列之普通队列收到消息:{}", new String(properties.getBody(), StandardCharsets.UTF_8));
+    }
+}
+
+```
+:::
+:::  code-group-item  bean
+
+```java
+package com.burny.rabbitmq.ele_backexchange;
+
+
+import org.springframework.amqp.core.*;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * @Note TODO
+ * @Author cyx
+ * @Date 2022/9/1 16:41
+ */
+@Configuration
+public class Config2 {
+
+    @Bean(Info.back_exchange)
+    public FanoutExchange back_exchange() {
+        return new FanoutExchange(Info.back_exchange);
+    }
+    @Bean(Info.confirm_exchange)
+    public DirectExchange confirm_exchange() {
+        return ExchangeBuilder.directExchange(Info.confirm_exchange).durable(false).withArgument("alternate-exchange",Info.back_exchange).build();
+        //return new DirectExchange(Info.confirm_exchange);
+    }
+
+    @Bean(Info.back_queue)
+    public Queue back_queue() {
+        return QueueBuilder.durable(Info.back_queue).build();
+    }
+    @Bean(Info.confirm_queue)
+    public Queue confirm_queue() {
+        return QueueBuilder.durable(Info.confirm_queue).build();
+    }
+
+    @Bean(Info.back_warn_queue)
+    public Queue back_warn_queue() {
+        return QueueBuilder.durable(Info.back_warn_queue).build();
+    }
+
+    @Bean
+    public Binding back_queue_to_back_exchange(@Qualifier(Info.back_queue) Queue back_queue
+            , @Qualifier(Info.back_exchange) FanoutExchange back_exchange) {
+        return BindingBuilder.bind(back_queue).to(back_exchange);
+    }
+
+    @Bean
+    public Binding confirm_queue_to_confirm_exchange(@Qualifier(Info.confirm_queue) Queue confirm_queue
+            , @Qualifier(Info.confirm_exchange) DirectExchange confirm_exchange) {
+        return BindingBuilder.bind(confirm_queue).to(confirm_exchange).with(Info.rt_confirm_exchange_confirm_queue);
+    }
+
+    @Bean
+    public Binding back_warn_queue_to_back_exchange(@Qualifier(Info.back_warn_queue) Queue back_warn_queue
+            , @Qualifier(Info.back_exchange) FanoutExchange back_exchange) {
+        return BindingBuilder.bind(back_warn_queue).to(back_exchange);
+    }
+
+
+}
+
+```
+:::
+
+:::  code-group-item  yml
+
+```java
+spring:
+  rabbitmq:
+    username: root
+    password: root
+   # host: 192.168.1.176
+    host: 192.168.1.128
+    port: 5672
+    virtual-host: /
+    connection-timeout: 20000
+    publisher-confirm-type: CORRELATED
+    publisher-returns: true
+    template:
+      mandatory: true
+```
+
+:::
+
+:::  code-group-item  Info
+
+```java
+
+  package com.burny.rabbitmq.ele_backexchange;
+
+/**
+ * @Note TODO
+ * @Author cyx
+ * @Date 2022/9/1 16:40
+ */
+
+public class Info {
+    public static final String back_exchange = "back_exchange";
+    public static final String back_queue = "back_queue";
+    public static final String back_warn_queue = "back_warn_queue";
+
+    public static  final String confirm_exchange="confirm_exchange";
+
+    public static  final String confirm_queue="confirm_queue";
+    public static final String rt_confirm_exchange_confirm_queue = "rt_confirm_exchange_confirm_queue";
+}
+
+```
+
+:::
+
+::::
+
+
+
+
+
+
+
+
+
+::: details 结果
+```java
+2022-09-07 11:31:00.939  INFO 13340 --- [io-10009-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-09-07 11:31:00.940  INFO 13340 --- [io-10009-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-09-07 11:31:00.953  INFO 13340 --- [io-10009-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 12 ms
+2022-09-07 11:31:01.425  INFO 13340 --- [nectionFactory1] c.b.r.ten_confirm.ExchangeCallBack       : 交换机确认回调:交换机已经收到消息并且成功处理,ID为aa6b0d1c-3475-492e-90f5-e26aa9148836
+2022-09-07 11:31:01.439  INFO 13340 --- [nectionFactory1] c.b.r.ten_confirm.ExchangeCallBack       : 交换机确认回调:交换机已经收到消息并且成功处理,ID为aa6b0d1c-3475-492e-90f5-e26aa9148836
+2022-09-07 11:31:01.442  WARN 13340 --- [ntContainer#1-1] c.b.rabbitmq.ele_backexchange.Consumer2  : 备份队列之报警队列收到信息：我是发送内容
+2022-09-07 11:31:01.442  INFO 13340 --- [ntContainer#0-1] c.b.rabbitmq.ele_backexchange.Consumer2  : 消费者:接收到的内容:我是发送内容
+2022-09-07 11:31:01.442  INFO 13340 --- [ntContainer#2-1] c.b.rabbitmq.ele_backexchange.Consumer2  : 备份队列之普通队列收到消息:我是发送内容
+```
+:::
+
+
+
+::: TIPS
+
+mandatory参数与备份交换机可以一起使用的时候，如果两者同事开启，备份交换机的由下级高
+
+:::
+
+## 其他知识点  
+### 幂等性问题
+#### 概念
+用户对于同一操作发起的一次请求或者多次请求的结果是一致的，不会因为多次点击而产生了副作用。举个最简单的例子，那就是支付，用户购买商品后支付，支付扣款成功，但是返回结果的时候网络异常，此时钱已经扣了，用户再次点击按钮，此时会进行第二次扣款，返回结果成功，用户查询余额发现多扣钱了，流水记录也变成了两条。在以前的单应用系统中，我们只需要把数据操作放入事务中即可，发生错误立即回滚，但是再响应客户端的时候也有可能出现网络中断或者异常等等
+
+#### 消息重复消费
+
+消费者在消费MQ中的消息时，MQ已把消息发送给消费者，消费者在给MQ返回ack时网络中断，故MQ未收到确认信息，该条消息会重新发给其他的消费者，或者在网络重连后再次发送给该消费者，但实际上该消费者已成功消费了该条消息，造成消费者消费了重复的消息。
+
+#### 解决思路
+
+MQ消费者的幂等性的解决一般`使用全局ID`或者写个唯一标识比如时间戳或者UUID或者订单消费者消费MQ中的消息也可利用MQ的该id来判断，或者可按自己的规则生成一个全局唯一id，每次消费消息时用该id先判断该消息是否已消费过。
+
+#### 消费端的幂等性保障
+
+在海量订单生成的业务高峰期，生产端有可能就会重复发生了消息，这时候消费端就要实现幂等性，这就意味着我们的消息永远不会被消费多次，即使我们收到了一样的消息。业界主流的幂等性有两种操作:a.唯一ID+指纹码机制,利用数据库主键去重, b.利用redis的原子性去实现
+
+####  唯一id+指纹码机制
+
+指纹码:我们的一些规则或者时间戳加别的服务给到的唯一信息码,它并不一定是我们系统生成的，基本都是由我们的业务规则拼接而来，但是一定要保证唯一性，然后就利用查询语句进行判断这个id是否存在数据库中,优势就是实现简单就一个拼接，然后查询判断是否重复；劣势就是在高并发时，如果是单个数据库就会有写入性能瓶颈当然也可以采用分库分表提升性能，但也不是我们最推荐的方式。
+
+#### redis原子性
+
+利用redis执行setnx命令，天然具有幂等性。从而实现不重复消费
+
+### 队列优先级
+
+#### 概念
+
+在我们系统中有一个订单催付的场景，我们的客户在天猫下的订单,淘宝会及时将订单推送给我们，如果在用户设定的时间内未付款那么就会给用户推送一条短信提醒，很简单的一个功能对吧，但是，tmall商家对我们来说，肯定是要分大客户和小客户的对吧，比如像苹果，小米这样大商家一年起码能给我们创造很大的利润，所以理应当然，他们的订单必须得到优先处理，而曾经我们的后端系统是使用redis来存放的定时轮询，大家都知道redis只能用List做一个简简单单的消息队列，并不能实现一个优先级的场景，所以订单量大了后采用RabbitMQ进行改造和优化,如果发现是大客户的订单给一个相对比较高的优先级，否则就是默认优先级。
+
+#### 界面进行添加
+
+优先级 0到255 
+
+![](/images/system/rabbitmq/3512.png)
+
+#### 代码添加
+
+* 队列需要设置为优先级队列
+* 消息需要设置消息的优先级，消费者需要等待消息已经发送到队列中去消费（同时发送100条数据，这100条数据的排序）
+
+
+
+```java
+
+    @Bean(Info.confirm_queue)
+    public Queue confirm_queue() {
+      return   QueueBuilder.durable(Info.confirm_queue).maxPriority(100).build();
+        //return QueueBuilder.durable(Info.confirm_queue).build();
+    }
+```
+
+
+
+```java
+        org.springframework.amqp.core.MessagePostProcessor postProcessor=new org.springframework.amqp.core.MessagePostProcessor() {
+            @Override
+            public Message postProcessMessage(Message message) throws AmqpException {
+                MessageProperties messageProperties = message.getMessageProperties();
+                messageProperties.setPriority(10);
+                return message;
+            }
+        };
+
+        rabbitTemplate.convertAndSend(Info.confirm_exchange,Info.rt_confirm_exchange_confirm_queue,data,postProcessor);
+```
+
+生产者
+
+```java
+ @GetMapping("/{data}")
+    public void pro(@PathVariable String data) {
+        CorrelationData correlationData = new CorrelationData();
+        //发送可达的信息
+        rabbitTemplate.convertAndSend(Info.confirm_exchange, Info.rt_confirm_exchange_confirm_queue + "ddd", data, correlationData);
+        //发送不可达的信息
+        rabbitTemplate.convertAndSend(Info.confirm_exchange, Info.rt_confirm_exchange_confirm_queue , data, correlationData);
+
+        for (int i = 0; i < 100; i++) {
+            if (i%3==0){
+                org.springframework.amqp.core.MessagePostProcessor postProcessor=new org.springframework.amqp.core.MessagePostProcessor() {
+                    @Override
+                    public Message postProcessMessage(Message message) throws AmqpException {
+                        MessageProperties messageProperties = message.getMessageProperties();
+                        messageProperties.setPriority(3);
+                        return message;
+                    }
+                };
+                rabbitTemplate.convertAndSend(Info.confirm_exchange,Info.rt_confirm_exchange_confirm_queue,data,postProcessor);
+            } else if (i%5 ==0) {
+                org.springframework.amqp.core.MessagePostProcessor postProcessor=new org.springframework.amqp.core.MessagePostProcessor() {
+                    @Override
+                    public Message postProcessMessage(Message message) throws AmqpException {
+                        MessageProperties messageProperties = message.getMessageProperties();
+                        messageProperties.setPriority(5);
+                        return message;
+                    }
+                };
+
+                rabbitTemplate.convertAndSend(Info.confirm_exchange,Info.rt_confirm_exchange_confirm_queue,data,postProcessor);
+                
+            }else{
+                rabbitTemplate.convertAndSend(Info.confirm_exchange,Info.rt_confirm_exchange_confirm_queue,data);
+
+            }
+
+        }
+
+
+
+    }
+```
+
+### 惰性队列
+
+* 默认情况：消息保存在内存中
+* 惰性队列：消息是保存在磁盘中
+
+>  mq中获取了100w条数据
+
+
+
+> 概念
+>
+> RabbitMQ从3.6.0版本开始引入了惰性队列的概念。惰性队列会尽可能的将消息存入磁盘中，而在消费者消费到相应的消息时才会被加载到内存中，它的一个重要的设计目标是能够支持更长的队列，即支持更多的消息存储。**当消费者由于各种各样的原因(**比如消费者下线、宕机亦或者是由于维护而关闭等)而致使长时间内不能消费消**息造成堆积时**，惰性队列就很有必要了。默认情况下，当生产者将消息发送到RabbitMQ的时候，队列中的消息会尽可能的存储在内存之中，这样可以更加快速的将消息发送给消费者。即使是持久化的消息，在被写入磁盘的同时也会在内存中驻留一份备份。当RabbitMQ需要释放内存的时候，会将内存中的消息换页至磁盘中，这个操作会耗费较长的时间，也会阻塞队列的操作，进而无法接收新的消息。虽然RabbitMQ的开发者们一直在升级相关的算法，但是效果始终不太理想，尤其是在消息量特别大的时候。
+
+#### 两种模式
+
+队列具备两种模式：`default`和`lazy`。默认的为`default`模式，在`3.6.0`之前的版本无需做任何变更。`lazy`模式即为惰性队列的模式，可以通过调用`channel.queueDeclare`方法的时候在参数中设置，也可以通过`Policy`的方式设置，如果一个队列同时使用这两种方式设置的话，那么`Policy`的方式具备更高的优先级。如果要通过声明的方式改变已有队列的模式的话，那么只能先删除队列，然后再重新声明一个新的。在队列声明的时候可以通过“x-queue-mode”参数来设置队列的模式，取值为“`default`”和“`lazy`”。下面示例中演示了一个惰性队列的声明细节：
+
+#### 界面
+
+![](/images/system/rabbitmq/5433.png)
+
+#### 代码
+
+```java
+    @Bean(Info.back_queue)
+    public Queue back_queue() {
+        //return QueueBuilder.durable(Info.back_queue).build();
+        return QueueBuilder.durable(Info.back_queue).lazy().build();
+    }
+```
+
+**在发送1百万条消息，每条消息大概占1KB的情况下，普通队列占用内存是1.2GB，而惰性队列仅仅占用1.5MB，仅保留部分的索引**
+
+## 高可用集群
+
+### 普通集群
+
+* 无论访问哪一台。都能获取到消息
+
+![](/images/system/rabbitmq/2251.png)
+
+1. 修改三个机器的hosts和hostsname,改完需要重启
+
+```bash
+  192.168.1.109 node1
+  192.168.1.142 node2
+  192.168.1.148 node3
+  # 先在148修改,修改完copy到另外两台服务器
+   scp /etc/hosts  root@192.168.1.109:/etc/hosts
+   scp /etc/hosts  root@192.168.1.142:/etc/hosts
+   
+   vim /etc/hostname
+   node1
+   node2
+   node3
+```
+
+![](/images/system/rabbitmq/3253.png)
+
+
+
+2. 安装erlang
+
+   ```shell
+   yum install socat logrotate -y
+    mkdir -p /data/soft/rabbitmq/zip
+    cd /data/soft/rabbitmq/zip/
+   # 上传文件
+   rpm -ivh   erlang-25.0.3-1.el8.x86_64.rpm 
+   rpm -ivh rabbitmq-server-3.10.7-1.el8.noarch.rpm
+   chkconfig rabbitmq-server on
+   rabbitmq-plugins enable rabbitmq_management
+   
+   
+   rabbitmqctl add_user root root
+   rabbitmqctl set_permissions -p  "/" root  ".*" ".*" ".*"
+   
+   reboot
+   ```
+
+   * 下载地址
+
+   [erlang](/source/erlang-25.0.3-1.el8.x86_64.rpm)
+
+   [rabbitmq](/source/rabbitmq-server-3.10.7-1.el8.noarch.rpm)
+
+   
+
+3. 确保各个节点使用的cookie 文件使用的是同一个值
+
+   ```shell
+     # 查看服务
+     systemctl status rabbitmq-server
+     
+    scp /var/lib/rabbitmq/.erlang.cookie  root@node2:/var/lib/rabbitmq/.erlang.cookie
+    scp /var/lib/rabbitmq/.erlang.cookie  root@node3:/var/lib/rabbitmq/.erlang.cookie
+    
+    # 每台机器执行
+    /sbin/service rabbitmq-server stop
+     # 每台机器执行
+     # 启动rabbitmq 服务,顺带启动erlang虚拟机和rabbitmq应用服务
+    rabbitmq-server -detached
+   
+   ```
+
+4.
+
+```shell
+# 在节点2执行
+rabbitmqctl stop_app # rabbitmqctl stop 会将elang虚拟机关闭,rabbitmqctl stop_app 只关闭rabbitmq服务
+rabbitmqctl reset
+ rabbitmqctl join_cluster rabbit@node1
+ rabbitmqctl start_app
+
+#在节点3zhixing 
+
+rabbitmqctl stop_app
+rabbitmqctl reset
+rabbitmqctl join_cluster rabbit@node1
+# 第二次启动时发现ip变了,需要更改/etc/hosts
+# 192.168.1.148 node1
+ #192.168.1.196 node2
+# 192.168.1.118 node3
+
+```
+
+####  启动报错小插曲
+
+```shell
+node1 上启动报错
+journalctl -u rabbitmq-server
+# 摁F 到文件末尾
+发现问题:W
+9月 13 10:13:32 node1 rabbitmq-server[136465]: ERROR: could not bind to distribution port 25672, it is in use by another node: rabbit@node1
+
+ systemctl start  rabbitmq-server
+ 
+ 加入端口号
+ firewall-cmd --query-port=4369/tcp erlang端口
+ firewall-cmd --query-port=25672/tcp 集群通信端口
+ 
+ firewall-cmd  --zone=public --permanent --add-port=4369/tcp
+ firewall-cmd  --zone=public --permanent --add-port=25672/tcp
+ firewall-cmd --reload
+ 
+```
+
+感谢以下博主
+
+[启动报错解决博主](https://blog.csdn.net/weixin_42293660/article/details/125709258)
+
+[加入集群报错解决博主](https://blog.csdn.net/qq_40739049/article/details/122415617)
+
+5. 集群状态
+
+   ```shell
+   
+   rabbitmqctl cluster_status
+   
+   ```
+
+6. 需要重新设置用户
+
+   ```shell
+   # 创建用户 分配角色 设置权限 分别在三台机器执行
+   rabbitmqctl add_user admin 123
+       rabbitmqctl  set_user_tags admin administrator
+       rabbitmqctl set_permissions -p  "/" admin  ".*" ".*" ".*"
+   ```
+
+7. 解除集群
+
+   ```shell
+   rabbitmqctl stop_app
+   rabbitmqctl reset
+   rabbitmqctl start_app
+   rabbitmqctl cluster_status
+   rabbitmqctl forget_cluster_node rabbit@node2(在node1上执行)
+   rabbitmqctl forget_cluster_node rabbit@node3(在node1上执行)
+   ```
+
+   
+
+   
+
+
+
+### 镜像队列
+
+#### 问题
+
+:bell:搭建好了集群,但是在node1 上的队列1 ,node2上是不会存在队列1的.
+
+
+
+如果RabbitMQ集群中只有一个Broker节点，那么该节点的失效将导致整体服务的临时性不可用，并且也可能会导致消息的丢失。可以将所有消息都设置为持久化，并且对应队列的durable属性也设置为true，但是这样仍然无法避免由于缓存导致的问题：因为消息在发送之后和被写入磁盘井执行刷盘动作之间存在一个短暂却会产生问题的时间窗。通过publisherconfirm机制能够确保客户端知道哪些消息己经存入磁盘，尽管如此，一般不希望遇到因单点故障导致的服务不可用。
+
+引入镜像队列(MirrorQueue)的机制，可以将队列镜像到集群中的其他Broker节点之上，如果集群中的一个节点失效了，队列能自动地切换到镜像中的另一个节点上以保证服务的可用性。
+
+#### 搭建步骤
+
+```java
+firewall-cmd  --zone=public --permanent --add-port=15672/tcp;
+firewall-cmd --reload;
+    
+```
+
+![](/images/system/rabbitmq/5232.png)
+
+![](/images/system/rabbitmq/5442.png)
+
+### 高可用负载均衡
+
+:bell:问题:代码已经将ip写死了.如果一个node挂了,不会自动链接到其他node
+
+```
+public static Channel getC() {
+    ConnectionFactory factory = new ConnectionFactory();
+    factory.setHost(ip);
+    factory.setUsername(username);
+    factory.setPassword(password);
+    //创建连接
+    Channel channel;
+    try (Connection connection = factory.newConnection()) {
+        //获取信道
+        channel = connection.createChannel();
+        return channel;
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+    return null;
+}
+```
+
+![](/images/system/rabbitmq/3623.png)
+
+![](/images/system/rabbitmq/3745.png)
+
+### haproxy+keepalive 实现高可用
+
+[引用来自这位博主](https://blog.csdn.net/weixin_45257707/article/details/104547102)
+
+```bash
+# 在两台机器上安装haproxy代理
+yum install -y haproxy
+cd /etc/haproxy/
+cp haproxy.cfg haproxy.cfg.bak
+vim haproxy.cfg	
+```
+
+默认配置
+
+```bash
+#---------------------------------------------------------------------
+# Example configuration for a possible web application.  See the
+# full configuration options online.
+#
+#   https://www.haproxy.org/download/1.8/doc/configuration.txt
+#
+#---------------------------------------------------------------------
+
+#---------------------------------------------------------------------
+# Global settings
+#---------------------------------------------------------------------
+global
+    # to have these messages end up in /var/log/haproxy.log you will
+    # need to:
+    #
+    # 1) configure syslog to accept network log events.  This is done
+    #    by adding the '-r' option to the SYSLOGD_OPTIONS in
+    #    /etc/sysconfig/syslog
+    #
+    # 2) configure local2 events to go to the /var/log/haproxy.log
+    #   file. A line like the following can be added to
+    #   /etc/sysconfig/syslog
+    #
+    #    local2.*                       /var/log/haproxy.log
+    #
+    log         127.0.0.1 local2
+
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    maxconn     4000
+    user        haproxy
+    group       haproxy
+    daemon
+
+    # turn on stats unix socket
+    stats socket /var/lib/haproxy/stats
+
+    # utilize system-wide crypto-policies
+    ssl-default-bind-ciphers PROFILE=SYSTEM
+    ssl-default-server-ciphers PROFILE=SYSTEM
+
+#---------------------------------------------------------------------
+# common defaults that all the 'listen' and 'backend' sections will
+# use if not designated in their block
+#---------------------------------------------------------------------
+defaults
+    mode                    http
+    log                     global
+    option                  httplog
+    option                  dontlognull
+    option http-server-close
+    option forwardfor       except 127.0.0.0/8
+    option                  redispatch
+    retries                 3
+    timeout http-request    10s
+    timeout queue           1m
+    timeout connect         10s
+    timeout client          1m
+    timeout server          1m
+    timeout http-keep-alive 10s
+    timeout check           10s
+    maxconn                 3000
+
+#---------------------------------------------------------------------
+# main frontend which proxys to the backends
+#---------------------------------------------------------------------
+frontend main
+    bind *:5000
+    acl url_static       path_beg       -i /static /images /javascript /stylesheets
+    acl url_static       path_end       -i .jpg .gif .png .css .js
+
+    use_backend static          if url_static
+    default_backend             app
+
+#---------------------------------------------------------------------
+# static backend for serving up images, stylesheets and such
+#---------------------------------------------------------------------
+backend static
+    balance     roundrobin
+    server      static 127.0.0.1:4331 check
+
+#---------------------------------------------------------------------
+# round robin balancing between the various backends
+#---------------------------------------------------------------------
+backend app
+    balance     roundrobin
+    server  app1 127.0.0.1:5001 check
+    server  app2 127.0.0.1:5002 check
+    server  app3 127.0.0.1:5003 check
+    server  app4 127.0.0.1:5004 check
+
+```
+
+引用的博主的配置(可能由于格式原因有误)
+
+```bash
+#--------------------------------------------------------------------
+global                                         # 全局配置	
+	log         127.0.0.1 local2                   # 日志输出配置
+	chroot      /var/lib/haproxy                   # haproxy工作目录
+	pidfile     /var/run/haproxy.pid               # haproxy的pid目录
+	maxconn     4000                               # 最大连接数（默认配置）
+	user        haproxy                            # 运行haproxy的用户
+	group       haproxy                            # haproxy所属组
+	nbproc      4                                  # 启动的haproxy进程个数，只能用于守护进程模式的haproxy；默认只启动一个进程，鉴于调试困难等多方面的原因，一般只在单进程仅能打开少数文件描述符的场景中才使用多进程模式；
+	daemon                                         # 后台启动 
+# turn on stats unix socket    
+	stats socket /var/lib/haproxy/stats            # 用户访问统计数据的接口目录
+	 ssl-default-bind-ciphers PROFILE=SYSTEM
+    ssl-default-server-ciphers PROFILE=SYSTEM
+
+#--------------------------------------------------------------------
+defaults                                       # 默认配置
+	mode                    http                   # 默认模式（mode{tcp\http\health}）
+	log                     global                 # 日志系统与global段一样
+	retries                 3                      # 3次连接服务器失败后确定服务器不可用
+	timeout connect         10s                    # 默认连接超时时间（可优化）
+	timeout client          1m                     # 默认客户端超时时间（可优化）
+	timeout server          1m                     # 默认服务器超时时间（可优化）
+	timeout check           10s                    # 默认心跳检测超时时间（可优化）
+	maxconn                 2048                   # 最大连接数，不要超过全局配置最大连接数
+
+#--------------------------------------------------------------------
+##监控查看本地状态## 
+listen admin_stats        
+bind *:80                                      # 绑定监控页面监听端口
+mode http    
+option httplog                                 # 日志类别采用httplog
+option httpclose                               # 每次请求完毕后主动关闭http通道
+log 127.0.0.1 local0 err                       # 定义日志发往的位置，级别为error，所有等于或高于此级别的日志信息将会被发送；
+stats uri  /haproxy                            # haproxy监控页面，可以自定义，如http://192.168.47.150/haproxy
+stats auth zludon:123                          # 配置监控页面账号密码登录   
+stats refresh 30s                              # 页面刷新间隔
+#################################### 
+##反代监控##
+frontend server                                # frontrend前端配置
+    bind *:5672    
+    log global    
+    mode tcp    
+    #option forwardfor    
+    default_backend rabbitmq                  # 定义匹配规则，请求转发至名为"rabbitmq"的后端服务
+    maxconn 3 
+backend rabbitmq                              # 后端服务配置，当frontend请求中名为"rabbitmq"跳转到此配置规则
+    mode        tcp    
+    log         global    
+    balance     roundrobin                    # 定义负载均衡算法，此处为轮叫（轮询）
+# 为后端声明server，格式为：server <name> <address> [:port] [param*] 
+# <name>：为此服务器指定的主机名，其将出现在日志及警告信息中；
+# <address>为此服务器的的IPv4地址，也支持使用可解析的主机名；
+# [:port]：指定将连接请求所发往的此服务器时的目标端口；
+# [param*]：为此服务器设定的一系参数，其可用的参数非常多，具体请参考官方文档中的说明(http://cbonte.github.io/haproxy-dconv/2.1/configuration.html)
+# check：启动对此server执行健康状态检查，其可以借助于额外的其它参数完成更精细的设定，如：inter <delay>：设定健康状态检查的时间间隔，单位为毫秒，默认为2000；也可以使用fastinter和down
+# rise <count>：设定健康状态检查中，某离线的server从离线状态转换至正常状态需要成功检查的次数；
+# fall <count>：确认server从正常状态转换为不可用状态需要检查的次数；
+    server      zabbix  192.168.47.145:5672 check inter 2000s rise 2 fall 3    
+    server      zabbix1 192.168.47.147:5672 check inter 2000s rise 2 fall 3    
+    server      zabbix2 192.168.47.129:5672 check inter 2000s rise 2 fall 3 
+#--------------------------------------------------------------------
+
+```
+
+根据博主配置进行配置
+
+```bash
+#---------------------------------------------------------------------
+# Example configuration for a possible web application.  See the
+# full configuration options online.
+#
+#   https://www.haproxy.org/download/1.8/doc/configuration.txt
+#
+#---------------------------------------------------------------------
+
+#---------------------------------------------------------------------
+# Global settings
+#---------------------------------------------------------------------
+global
+    # to have these messages end up in /var/log/haproxy.log you will
+    # need to:
+    #
+    # 1) configure syslog to accept network log events.  This is done
+    #    by adding the '-r' option to the SYSLOGD_OPTIONS in
+    #    /etc/sysconfig/syslog
+    #
+    # 2) configure local2 events to go to the /var/log/haproxy.log
+    #   file. A line like the following can be added to
+    #   /etc/sysconfig/syslog
+    #
+    #    local2.*                       /var/log/haproxy.log
+    #
+    log         127.0.0.1 local2
+
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    maxconn     4000
+    user        haproxy
+    group       haproxy
+    daemon
+
+    # turn on stats unix socket
+    stats socket /var/lib/haproxy/stats
+
+    # utilize system-wide crypto-policies
+    ssl-default-bind-ciphers PROFILE=SYSTEM
+    ssl-default-server-ciphers PROFILE=SYSTEM
+
+#---------------------------------------------------------------------
+# common defaults that all the 'listen' and 'backend' sections will
+# use if not designated in their block
+#---------------------------------------------------------------------
+defaults
+    mode                    tcp
+    log                     global
+    option                  tcplog
+    option                  dontlognull
+    option http-server-close
+   # option forwardfor       except 127.0.0.0/8
+    option                  redispatch
+    retries                 3
+    timeout http-request    10s
+    timeout queue           1m
+    timeout connect         10s
+    timeout client          1m
+    timeout server          1m
+    timeout http-keep-alive 10s
+    timeout check           10s
+    maxconn                 3000
+listen admin_status
+  bind       *:80
+  mode      http
+  option    httplog
+  option    httpclose
+  log  127.0.0.1 local0  #error
+  stats uri /haproxy
+  stats auth root:root
+  stats refresh 30s
+frontend mq
+  bind  *:8894
+  #log   global
+  mode  tcp
+ # optioin forwardfor
+  default_backend rabbitmq
+  maxconn 2048
+backend rabbitmq
+   mode    tcp
+   log     global
+   balance roundrobin    #负载均衡算法.轮询
+   server   node1  192.168.1.148:5672 check inter 2000s rise 2 fall 3
+   server   node2  192.168.1.118:5672 check inter 2000s rise 2 fall 3 
+   server   node3  192.168.1.196:5672 check inter 2000s rise 2 fall 3
+
+
+```
+
+
+
+```bash
+
+haproxy -f haproxy.cfg # 加载配置文件我
+systemctl start haproxy
+systemctl enable haproxy
+```
+
+
+
+```java
+ setsebool -P haproxy_connect_any=1
+     systemctl stop firewalld
+vim /etc/sysctl.conf # 添加以下两条
+net.ipv4.ip_nonlocal_bind=1
+net.ipv4.ip_forward = 1
+
+```
+
+### 联邦交换机
+
+
+
+(broker北京)，(broker深圳)彼此之间相距甚远，网络延迟是一个不得不面对的问题。有一个在北京的业务(Client北京)需要连接(broker北京)，向其中的交换器exchangeA发送消息，此时的网络延迟很小，(Client北京)可以迅速将消息发送至exchangeA中，就算在开启了publisherconfirm机制或者事务机制的情况下，也可以迅速收到确认信息。此时又有个在深圳的业务(Client深圳)需要向exchangeA发送消息，那么(Client深圳) (broker北京)之间有很大的网络延迟，(Client深圳)将发送消息至exchangeA会经历一定的延迟，尤其是在开启了publisherconfirm机制或者事务机制的情况下，(Client深圳)会等待很长的延迟时间来接收(broker北京)的确认信息，进而必然造成这条发送线程的性能降低，甚至造成一定程度上的阻塞。
+
+将业务(Client深圳)部署到北京的机房可以解决这个问题，但是如果(Client深圳)调用的另些服务都部署在深圳，那么又会引发新的时延问题，总不见得将所有业务全部部署在一个机房，那么容灾又何以实现？这里使用Federation插件就可以很好地解决这个问题.
