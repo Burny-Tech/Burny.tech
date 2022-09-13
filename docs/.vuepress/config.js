@@ -73,9 +73,17 @@ module.exports = {
           text: 'Java',
           children: ['/debris/java/Java/index.md']
         },
+                {
+          text: 'SpringBoot',
+          children: ['/debris/SpringBoot/index.md']
+        },
         {
           text: 'SpringJPA',
           children: ['/debris/java/JPA/index.md']
+        }
+        ,        {
+          text: 'MySql',
+          children: ['/debris/mysql/index.md']
         }
       ],
       '/system/': [
@@ -85,11 +93,15 @@ module.exports = {
         },
         {
           text: 'rabbitmq',
-          children: ['/system/rabbitmq/index2.md']
+          children: ['/system/rabbitmq/index.md']
         },
         {
           text: 'SpringSecurity',
           children: ['/system/SpringSecurity/index.md']
+        },
+        {
+          text: 'Redis',
+          children: ['/system/redis/index.md']
         },
 
 
