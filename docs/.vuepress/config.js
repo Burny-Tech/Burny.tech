@@ -15,7 +15,7 @@ const { shikiPlugin } = require('@vuepress/plugin-shiki')
 module.exports = {
   lang: 'zh-CN',
   base: "/",
-  title: 'Burny',
+  title: 'Burny.tech',
   description: 'Burny',
   head: [
     ['link', { rel: 'manifest', href: '/manifest.webmanifest' }],
