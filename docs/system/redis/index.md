@@ -176,8 +176,8 @@ exists key1
 | [Redis Setex 命令](https://www.redis.net.cn/order/3551.html) | 将值 value 关联到 key ，并将 key 的过期时间设为 seconds (以秒为单位)。 ```  SETEX KEY_NAME TIMEOUT VALUE``` | SETEX KEY_NAME TIMEOUT VALUE                  | 设置成功时返回 OK 。                                         | 原子性                                                       |
 | [Redis SET 命令](https://www.redis.net.cn/order/3544.html)   | 设置指定 key 的值  **多次设置会覆盖掉上次的key**             | SET KEY_NAME VALUE                            | ET 在设置操作成功完成时，才返回 OK 。                        |                                                              |
 | [Redis Get 命令](https://www.redis.net.cn/order/3545.html)   | Redis Get 命令用于获取指定 key 的值。如果 key 不存在，返回 nil 。如果key 储存的值不是字符串类型，返回一个错误。 | GET KEY_NAME                                  | 返回 key 的值，如果 key 不存在时，返回 nil。 如果 key 不是字符串类型，那么返回一个错误。 |                                                              |
-| [Redis Getbit 命令](https://www.redis.net.cn/order/3548.html) | 对 key 所储存的字符串值，获取指定偏移量上的位(bit)。         | GETBIT KEY_NAME OFFSET                        | 字符串值指定偏移量上的位(bit)。当偏移量 OFFSET 比字符串值的长度大，或者 key 不存在时，返回 0 。 | \# 对不存在的 key 或者不存在的 offset 进行 GETBIT， 返回 0  <br /> redis> EXISTS bit (integer) 0<br />   redis> GETBIT bit 10086 (integer) 0     \# 对已存在的 offset 进行 GETBIT   redis> SETBIT bit 10086 1 (integer) 0   redis> GETBIT bit 10086 (integer) 1 |
-| [Redis Setbit 命令](https://www.redis.net.cn/order/3550.html) | 对 key 所储存的字符串值，设置或清除指定偏移量上的位(bit)。   | Setbit KEY_NAME OFFSET                        | 指定偏移量原来储存的位。                                     | redis> SETBIT bit 10086 1 (integer) 0   redis> GETBIT bit 10086 (integer) 1   redis> GETBIT bit 100   # bit 默认被初始化为 0 (integer) 0 |
+| [Redis Getbit 命令](https://www.redis.net.cn/order/3548.html) | 对 key 所储存的字符串值，获取指定偏移量上的位(bit)。         | GETBIT KEY_NAME OFFSET                        | 字符串值指定偏移量上的位(bit)。当偏移量 OFFSET 比字符串值的长度大，或者 key 不存在时，返回 0 。 | \# 对不存在的 key 或者不存在的 offset 进行 GETBIT， 返回 0  <br /> redis EXISTS bit (integer) 0<br />   redis GETBIT bit 10086 (integer) 0     \# 对已存在的 offset 进行 GETBIT   redis SETBIT bit 10086 1 (integer) 0   redis GETBIT bit 10086 (integer) 1 |
+| [Redis Setbit 命令](https://www.redis.net.cn/order/3550.html) | 对 key 所储存的字符串值，设置或清除指定偏移量上的位(bit)。   | Setbit KEY_NAME OFFSET                        | 指定偏移量原来储存的位。                                     | redis SETBIT bit 10086 1 (integer) 0   redis GETBIT bit 10086 (integer) 1   redis  GETBIT bit 100   # bit 默认被初始化为 0 (integer) 0 |
 | [Redis Decr 命令](https://www.redis.net.cn/order/3561.html)  | Redis Decr 命令将 key 中储存的数字值减一。如果 key 不存在，那么 key 的值会先被初始化为 0 ，然后再执行 DECR 操作。如果值包含错误的类型，或字符串类型的值不能表示为数字，那么返回一个错误。本操作的值限制在 64 位(bit)有符号数字表示之内。<br />  ```原子操作``` | DECR KEY_NAME                                 | 执行命令之后 key 的值。                                      |                                                              |
 | [Redis Decrby 命令](https://www.redis.net.cn/order/3562.html) | key 所储存的值减去给定的减量值（decrement） 。<br /><br />Redis Decrby 命令将 key 所储存的值减去指定的减量值。如果 key 不存在，那么 key 的值会先被初始化为 0 ，然后再执行 DECRBY 操作。如果值包含错误的类型，或字符串类型的值不能表示为数字，那么返回一个错误。本操作的值限制在 64 位(bit)有符号数字表示之内。<br /><br />   ```原子操作``` | DECRBY KEY_NAME DECREMENT_AMOUNT              | 减去指定减量值之后， key 的值。                              |                                                              |
 | [Redis Strlen 命令](https://www.redis.net.cn/order/3554.html) | 返回 key 所储存的字符串值的长度。<br />Redis Strlen 命令用于获取指定 key 所储存的字符串值的长度。当 key 储存的不是字符串值时，返回一个错误。 | STRLEN KEY_NAME                               | 字符串值的长度。 当 key 不存在时，返回 0。                   |                                                              |
@@ -305,7 +305,7 @@ hash类型对应的数据结构是两种：ziplist 压缩列表 hashtable 哈希
 | [Redis Hmget 命令](https://www.redis.net.cn/order/3572.html) | Redis Hmget 命令用于返回哈希表中，一个或多个给定字段的值。<br/><br/>如果指定的字段不存在于哈希表，那么返回一个 nil 值。 | HMGET KEY_NAME FIELD1...FIELDN                         | 一个包含多个给定字段关联值的表，表值的排列顺序和指定字段的请求顺序一样。 | redis 127.0.0.1:6379> HSET myhash field1 "foo"<br/>(integer) 1<br/>redis 127.0.0.1:6379> HSET myhash field2 "bar"<br/>(integer) 1<br/>redis 127.0.0.1:6379> HMGET myhash field1 field2 nofield<br/>1) "foo"<br/>2) "bar"<br/>3) (nil) |
 | [Redis Hset 命令](https://www.redis.net.cn/order/3574.html)  | Redis Hset 命令用于为哈希表中的字段赋值 。<br/><br/>如果哈希表不存在，一个新的哈希表被创建并进行 HSET 操作。<br/><br/>如果字段已经存在于哈希表中，旧值将被覆盖。 | HSET KEY_NAME FIELD VALUE                              | 如果字段是哈希表中的一个新建字段，并且值设置成功，返回 1 。 如果哈希表中域字段已经存在且旧值已被新值覆盖，返回 0 。 | redis 127.0.0.1:6379> HSET myhash field1 "foo" OK redis 127.0.0.1:6379> HGET myhash field1 "foo"   redis 127.0.0.1:6379> HSET website google "www.g.cn"       # 设置一个新域 (integer) 1   redis 127.0.0.1:6379>HSET website google "www.google.com" # 覆盖一个旧域 (integer) 0 |
 | [Redis Hgetall 命令](https://www.redis.net.cn/order/3567.html) | Redis Hgetall 命令用于返回哈希表中，所有的字段和值。<br/><br/>在返回值里，紧跟每个字段名(field name)之后是字段的值(value)，所以返回值的长度是哈希表大小的两倍。 | HGETALL KEY_NAME                                       | 以列表形式返回哈希表的字段及字段值。 若 key 不存在，返回空列表。 | redis 127.0.0.1:6379> HSET myhash field1 "foo"<br/>(integer) 1<br/>redis 127.0.0.1:6379> HSET myhash field2 "bar"<br/>(integer) 1<br/>redis 127.0.0.1:6379> HGETALL myhash<br/>1) "field1"<br/>2) "Hello"<br/>3) "field2"<br/>4) "World" |
-| [Redis Hget 命令](https://www.redis.net.cn/order/3566.html)  | 获取存储在哈希表中指定字段的值/td>                           | HGET KEY_NAME FIELD_NAME                               | 返回给定字段的值。如果给定的字段或 key 不存在时，返回 nil 。 | # 字段存在<br/> <br/>redis> HSET site redis redis.com<br/>(integer) 1<br/> <br/>redis> HGET site redis<br/>"redis.com"<br/> <br/> <br/># 字段不存在<br/> <br/>redis> HGET site mysql<br/>(nil) |
+| [Redis Hget 命令](https://www.redis.net.cn/order/3566.html)  | 获取存储在哈希表中指定字段的值/td>                           | HGET KEY_NAME FIELD_NAME                               | 返回给定字段的值。如果给定的字段或 key 不存在时，返回 nil 。 | # 字段存在<br/> <br/>redis HSET site redis redis.com<br/>(integer) 1<br/> <br/>redis  HGET site redis<br/>"redis.com"<br/> <br/> <br/># 字段不存在<br/> <br/>redis HGET site mysql<br/>(nil) |
 | [Redis Hexists 命令](https://www.redis.net.cn/order/3565.html) | 查看哈希表 key 中，指定的字段是否存在。                      | HEXISTS KEY_NAME FIELD_NAME                            | 如果哈希表含有给定字段，返回 1 。 如果哈希表不含有给定字段，或 key 不存在，返回 0 。 |                                                              |
 | [Redis Hincrby 命令](https://www.redis.net.cn/order/3568.html) | 为哈希表 key 中的指定字段的整数值加上增量 increment 。       | HINCRBY KEY_NAME FIELD_NAME INCR_BY_NUMBER             | Redis Hincrby 命令用于为哈希表中的字段值加上指定增量值。<br/><br/>增量也可以为负数，相当于对指定字段进行减法操作。<br/><br/>如果哈希表的 key 不存在，一个新的哈希表被创建并执行 HINCRBY 命令。<br/><br/>如果指定的字段不存在，那么在执行命令前，字段的值被初始化为 0 。<br/><br/>对一个储存字符串值的字段执行 HINCRBY 命令将造成一个错误。<br/><br/>本操作的值被限制在 64 位(bit)有符号数字表示之内。 |                                                              |
 | [Redis Hlen 命令](https://www.redis.net.cn/order/3571.html)  | 获取哈希表中字段的数量                                       | HLEN KEY_NAME                                          | 哈希表中字段的数量。 当 key 不存在时，返回 0 。              |                                                              |
@@ -333,14 +333,14 @@ hash类型对应的数据结构是两种：ziplist 压缩列表 hashtable 哈希
 | [Redis Zrank 命令](https://www.redis.net.cn/order/3618.html) | Redis Zrank 返回有序集中指定成员的排名。其中有序集成员按分数值递增(从小到大)顺序排列。 | ZRANK key member                                             | 如果成员是有序集 key 的成员，返回 member 的排名。 如果成员不是有序集 key 的成员，返回 nil 。 |                                                              |
 | [Redis Zincrby 命令](https://www.redis.net.cn/order/3612.html) | Redis Zincrby 命令对有序集合中指定成员的分数加上增量 increment<br/><br/>可以通过传递一个负数值 increment ，让分数减去相应的值，比如 ZINCRBY key -5 member ，就是让 member 的 score 值减去 5 。<br/><br/>当 key 不存在，或分数不是 key 的成员时， ZINCRBY key increment member 等同于 ZADD key increment member 。<br/><br/>当 key 不是有序集类型时，返回一个错误。<br/><br/>分数值可以是整数值或双精度浮点数。 | redis 127.0.0.1:6379> ZINCRBY key increment member           | member 成员的新分数值，以字符串形式表示。                    |                                                              |
 | [Redis Zrangebyscore 命令](https://www.redis.net.cn/order/3617.html) | Redis Zrangebyscore 返回有序集合中指定分数区间的成员列表。有序集成员按分数值递增(从小到大)次序排列。<br/><br/>具有相同分数值的成员按字典序来排列(该属性是有序集提供的，不需要额外的计算)。<br/><br/>默认情况下，区间的取值使用闭区间 (小于等于或大于等于)，你也可以通过给参数前增加 ( 符号来使用可选的开区间 (小于或大于)。<br/><br/>举个例子：<br/><br/>ZRANGEBYSCORE zset (1 5<br/>返回所有符合条件 1 < score <= 5 的成员，而<br/><br/>ZRANGEBYSCORE zset (5 (10<br/>则返回所有符合条件 5 < score < 10 的成员。 | ZRANGEBYSCORE key min max [WITHSCORES] [LIMIT offset count]  | 指定区间内，带有分数值(可选)的有序集成员的列表。             |                                                              |
-| [Redis Zrangebylex 命令](https://www.redis.net.cn/order/3616.html) | 通过字典区间返回有序集合的成员                               | ZRANGEBYLEX key min max [LIMIT offset count]                 | 指定区间内的元素列表。                                       | redis 127.0.0.1:6379> ZADD myzset 0 a 0 b 0 c 0 d 0 e 0 f 0 g<br/>(integer) 7<br/>redis 127.0.0.1:6379> ZRANGEBYLEX myzset - [c<br/>1) "a"<br/>2) "b"<br/>3) "c"<br/>redis 127.0.0.1:6379> ZRANGEBYLEX myzset - (c<br/>1) "a"<br/>2) "b"<br/>redis 127.0.0.1:6379> ZRANGEBYLEX myzset [aaa (g<br/>1) "b"<br/>2) "c"<br/>3) "d"<br/>4) "e"<br/>5) "f"<br/>redis> |
+| [Redis Zrangebylex 命令](https://www.redis.net.cn/order/3616.html) | 通过字典区间返回有序集合的成员                               | ZRANGEBYLEX key min max [LIMIT offset count]                 | 指定区间内的元素列表。                                       | redis 127.0.0.1:6379> ZADD myzset 0 a 0 b 0 c 0 d 0 e 0 f 0 g<br/>(integer) 7<br/>redis 127.0.0.1:6379> ZRANGEBYLEX myzset - [c<br/>1) "a"<br/>2) "b"<br/>3) "c"<br/>redis 127.0.0.1:6379> ZRANGEBYLEX myzset - (c<br/>1) "a"<br/>2) "b"<br/>redis 127.0.0.1:6379> ZRANGEBYLEX myzset [aaa (g<br/>1) "b"<br/>2) "c"<br/>3) "d"<br/>4) "e"<br/>5) "f"<br/>redis |
 | [Redis Zscore 命令](https://www.redis.net.cn/order/3626.html) | redis Zscore 命令返回有序集中，成员的分数值。 如果成员元素不是有序集 key 的成员，或 key 不存在，返回 nil 。 | ZSCORE key member                                            | 成员的分数值，以字符串形式表示。                             | redis 127.0.0.1:6379> ZRANGE salary 0 -1 WITHSCORES    # 测试数据<br/>1) "tom"<br/>2) "2000"<br/>3) "peter"<br/>4) "3500"<br/>5) "jack"<br/>6) "5000"<br/> <br/>redis 127.0.0.1:6379> ZSCORE salary peter              # 注意返回值是字符串<br/>"3500" |
-| [Redis Zremrangebyscore 命令](https://www.redis.net.cn/order/3622.html) | 移除有序集合中给定的分数区间的所有成员                       | ZREMRANGEBYSCORE key min max                                 | 被移除成员的数量。                                           | redis 127.0.0.1:6379> ZRANGE salary 0 -1 WITHSCORES          # 显示有序集内所有成员及其 score 值<br/>1) "tom"<br/>2) "2000"<br/>3) "peter"<br/>4) "3500"<br/>5) "jack"<br/>6) "5000"<br/> <br/>redis 127.0.0.1:6379> ZREMRANGEBYSCORE salary 1500 3500      # 移除所有薪水在 1500 到 3500 内的员工<br/>(integer) 2<br/> <br/>redis> ZRANGE salary 0 -1 WITHSCORES          # 剩下的有序集成员<br/>1) "jack"<br/>2) "5000" |
+| [Redis Zremrangebyscore 命令](https://www.redis.net.cn/order/3622.html) | 移除有序集合中给定的分数区间的所有成员                       | ZREMRANGEBYSCORE key min max                                 | 被移除成员的数量。                                           | redis 127.0.0.1:6379> ZRANGE salary 0 -1 WITHSCORES          # 显示有序集内所有成员及其 score 值<br/>1) "tom"<br/>2) "2000"<br/>3) "peter"<br/>4) "3500"<br/>5) "jack"<br/>6) "5000"<br/> <br/>redis 127.0.0.1:6379> ZREMRANGEBYSCORE salary 1500 3500      # 移除所有薪水在 1500 到 3500 内的员工<br/>(integer) 2<br/> <br/>redis ZRANGE salary 0 -1 WITHSCORES          # 剩下的有序集成员<br/>1) "jack"<br/>2) "5000" |
 | [Redis Zscan 命令](https://www.redis.net.cn/order/3628.html) | 迭代有序集合中的元素（包括元素成员和元素分值）               | redis 127.0.0.1:6379> redis 127.0.0.1:6379> ZSCAN key cursor [MATCH pattern] [COUNT count] | 返回的每个元素都是一个有序集合元素，一个有序集合元素由一个成员（member）和一个分值（score）组成。 |                                                              |
-| [Redis Zrevrangebyscore 命令](https://www.redis.net.cn/order/3624.html)(不是很懂，需加查看) | Redis Zrevrangebyscore 返回有序集中指定分数区间内的所有的成员。有序集成员按分数值递减(从大到小)的次序排列。<br/><br/>具有相同分数值的成员按字典序的逆序(reverse lexicographical order )排列。<br/><br/>除了成员按分数值递减的次序排列这一点外， ZREVRANGEBYSCORE 命令的其他方面和 ZRANGEBYSCORE 命令一样。 | ZREVRANGEBYSCORE key max min [WITHSCORES] [LIMIT offset count] | 指定区间内，带有分数值(可选)的有序集成员的列表。             | redis 127.0.0.1:6379> ZADD salary 10086 jack<br/>(integer) 1<br/>redis > ZADD salary 5000 tom<br/>(integer) 1<br/>redis 127.0.0.1:6379> ZADD salary 7500 peter<br/>(integer) 1<br/>redis 127.0.0.1:6379> ZADD salary 3500 joe<br/>(integer) 1<br/> <br/>redis 127.0.0.1:6379> ZREVRANGEBYSCORE salary +inf -inf   # 逆序排列所有成员<br/>1) "jack"<br/>2) "peter"<br/>3) "tom"<br/>4) "joe"<br/> <br/>redis 127.0.0.1:6379> ZREVRANGEBYSCORE salary 10000 2000  # 逆序排列薪水介于 10000 和 2000 之间的成员<br/>1) "peter"<br/>2) "tom"<br/>3) "joe" |
-| [Redis Zremrangebylex 命令](https://www.redis.net.cn/order/3620.html) | 移除有序集合中给定的字典区间的所有成员                       | ZREMRANGEBYLEX key min max                                   | 被成功移除的成员的数量，不包括被忽略的成员。                 | redis 127.0.0.1:6379> ZADD myzset 0 aaaa 0 b 0 c 0 d 0 e<br/>(integer) 5<br/>redis 127.0.0.1:6379> ZADD myzset 0 foo 0 zap 0 zip 0 ALPHA 0 alpha<br/>(integer) 5<br/>redis 127.0.0.1:6379> ZRANGE myzset 0 -1<br/>1) "ALPHA"<br/> 2) "aaaa"<br/> 3) "alpha"<br/> 4) "b"<br/> 5) "c"<br/> 6) "d"<br/> 7) "e"<br/> 8) "foo"<br/> 9) "zap"<br/>10) "zip"<br/>redis 127.0.0.1:6379> ZREMRANGEBYLEX myzset [alpha [omega<br/>(integer) 6<br/>redis 127.0.0.1:6379> ZRANGE myzset 0 -1<br/>1) "ALPHA"<br/>2) "aaaa"<br/>3) "zap"<br/>4) "zip"<br/>redis> |
+| [Redis Zrevrangebyscore 命令](https://www.redis.net.cn/order/3624.html)(不是很懂，需加查看) | Redis Zrevrangebyscore 返回有序集中指定分数区间内的所有的成员。有序集成员按分数值递减(从大到小)的次序排列。<br/><br/>具有相同分数值的成员按字典序的逆序(reverse lexicographical order )排列。<br/><br/>除了成员按分数值递减的次序排列这一点外， ZREVRANGEBYSCORE 命令的其他方面和 ZRANGEBYSCORE 命令一样。 | ZREVRANGEBYSCORE key max min [WITHSCORES] [LIMIT offset count] | 指定区间内，带有分数值(可选)的有序集成员的列表。             | redis 127.0.0.1:6379> ZADD salary 10086 jack<br/>(integer) 1<br/>redis  ZADD salary 5000 tom<br/>(integer) 1<br/>redis 127.0.0.1:6379> ZADD salary 7500 peter<br/>(integer) 1<br/>redis 127.0.0.1:6379> ZADD salary 3500 joe<br/>(integer) 1<br/> <br/>redis 127.0.0.1:6379> ZREVRANGEBYSCORE salary +inf -inf   # 逆序排列所有成员<br/>1) "jack"<br/>2) "peter"<br/>3) "tom"<br/>4) "joe"<br/> <br/>redis 127.0.0.1:6379> ZREVRANGEBYSCORE salary 10000 2000  # 逆序排列薪水介于 10000 和 2000 之间的成员<br/>1) "peter"<br/>2) "tom"<br/>3) "joe" |
+| [Redis Zremrangebylex 命令](https://www.redis.net.cn/order/3620.html) | 移除有序集合中给定的字典区间的所有成员                       | ZREMRANGEBYLEX key min max                                   | 被成功移除的成员的数量，不包括被忽略的成员。                 | redis 127.0.0.1:6379> ZADD myzset 0 aaaa 0 b 0 c 0 d 0 e<br/>(integer) 5<br/>redis 127.0.0.1:6379> ZADD myzset 0 foo 0 zap 0 zip 0 ALPHA 0 alpha<br/>(integer) 5<br/>redis 127.0.0.1:6379> ZRANGE myzset 0 -1<br/>1) "ALPHA"<br/> 2) "aaaa"<br/> 3) "alpha"<br/> 4) "b"<br/> 5) "c"<br/> 6) "d"<br/> 7) "e"<br/> 8) "foo"<br/> 9) "zap"<br/>10) "zip"<br/>redis 127.0.0.1:6379> ZREMRANGEBYLEX myzset [alpha [omega<br/>(integer) 6<br/>redis 127.0.0.1:6379> ZRANGE myzset 0 -1<br/>1) "ALPHA"<br/>2) "aaaa"<br/>3) "zap"<br/>4) "zip"<br/>redis |
 | [Redis Zrevrange 命令](https://www.redis.net.cn/order/3623.html) | redis Zrevrange 命令返回有序集中，指定区间内的成员。<br/><br/>其中成员的位置按分数值递减(从大到小)来排列。<br/><br/>具有相同分数值的成员按字典序的逆序(reverse lexicographical order)排列。<br/><br/>除了成员按分数值递减的次序排列这一点外， ZREVRANGE 命令的其他方面和 ZRANGE 命令一样。 | redis 127.0.0.1:6379> ZREVRANGE key start stop [WITHSCORES]  | 指定区间内，带有分数值(可选)的有序集成员的列表。             | redis 127.0.0.1:6379> ZRANGE salary 0 -1 WITHSCORES        # 递增排列<br/>1) "peter"<br/>2) "3500"<br/>3) "tom"<br/>4) "4000"<br/>5) "jack"<br/>6) "5000"<br/> <br/>redis 127.0.0.1:6379> ZREVRANGE salary 0 -1 WITHSCORES     # 递减排列<br/>1) "jack"<br/>2) "5000"<br/>3) "tom"<br/>4) "4000"<br/>5) "peter"<br/>6) "3500" |
-| [Redis Zrange 命令](https://www.redis.net.cn/order/3615.html) | Redis Zrange 返回有序集中，指定区间内的成员。<br/><br/>其中成员的位置按分数值递增(从小到大)来排序。<br/><br/>具有相同分数值的成员按字典序(lexicographical order )来排列。<br/><br/>如果你需要成员按<br/><br/>值递减(从大到小)来排列，请使用 ZREVRANGE 命令。<br/><br/>下标参数 start 和 stop 都以 0 为底，也就是说，以 0 表示有序集第一个成员，以 1 表示有序集第二个成员，以此类推。<br/><br/>你也可以使用负数下标，以 -1 表示最后一个成员， -2 表示倒数第二个成员，以此类推。 | ZRANGE key start stop [WITHSCORES]                           | 指定区间内，带有分数值(可选)的有序集成员的列表。             | redis 127.0.0.1:6379> ZRANGE salary 0 -1 WITHSCORES             # 显示整个有序集成员<br/>1) "jack"<br/>2) "3500"<br/>3) "tom"<br/>4) "5000"<br/>5) "boss"<br/>6) "10086"<br/> <br/>redis 127.0.0.1:6379> ZRANGE salary 1 2 WITHSCORES              # 显示有序集下标区间 1 至 2 的成员<br/>1) "tom"<br/>2) "5000"<br/>3) "boss"<br/>4) "10086"<br/> <br/>redis 127.0.0.1:6379> ZRANGE salary 0 200000 WITHSCORES         # 测试 end 下标超出最大下标时的情况<br/>1) "jack"<br/>2) "3500"<br/>3) "tom"<br/>4) "5000"<br/>5) "boss"<br/>6) "10086"<br/> <br/>redis > ZRANGE salary 200000 3000000 WITHSCORES                  # 测试当给定区间不存在于有序集时的情况<br/>(empty list or set) |
+| [Redis Zrange 命令](https://www.redis.net.cn/order/3615.html) | Redis Zrange 返回有序集中，指定区间内的成员。<br/><br/>其中成员的位置按分数值递增(从小到大)来排序。<br/><br/>具有相同分数值的成员按字典序(lexicographical order )来排列。<br/><br/>如果你需要成员按<br/><br/>值递减(从大到小)来排列，请使用 ZREVRANGE 命令。<br/><br/>下标参数 start 和 stop 都以 0 为底，也就是说，以 0 表示有序集第一个成员，以 1 表示有序集第二个成员，以此类推。<br/><br/>你也可以使用负数下标，以 -1 表示最后一个成员， -2 表示倒数第二个成员，以此类推。 | ZRANGE key start stop [WITHSCORES]                           | 指定区间内，带有分数值(可选)的有序集成员的列表。             | redis 127.0.0.1:6379> ZRANGE salary 0 -1 WITHSCORES             # 显示整个有序集成员<br/>1) "jack"<br/>2) "3500"<br/>3) "tom"<br/>4) "5000"<br/>5) "boss"<br/>6) "10086"<br/> <br/>redis 127.0.0.1:6379> ZRANGE salary 1 2 WITHSCORES              # 显示有序集下标区间 1 至 2 的成员<br/>1) "tom"<br/>2) "5000"<br/>3) "boss"<br/>4) "10086"<br/> <br/>redis 127.0.0.1:6379> ZRANGE salary 0 200000 WITHSCORES         # 测试 end 下标超出最大下标时的情况<br/>1) "jack"<br/>2) "3500"<br/>3) "tom"<br/>4) "5000"<br/>5) "boss"<br/>6) "10086"<br/> <br/>redis  ZRANGE salary 200000 3000000 WITHSCORES                  # 测试当给定区间不存在于有序集时的情况<br/>(empty list or set) |
 | [Redis Zcount 命令](https://www.redis.net.cn/order/3611.html) | 计算在有序集合中指定区间分数的成员数                         | ZCOUNT key min max                                           | 分数值在 min 和 max 之间的成员的数量。                       | redis 127.0.0.1:6379> ZADD myzset 1 "hello"<br/>(integer) 1<br/>redis 127.0.0.1:6379> ZADD myzset 1 "foo"<br/>(integer) 1<br/>redis 127.0.0.1:6379> ZADD myzset 2 "world" 3 "bar"<br/>(integer) 2<br/>redis 127.0.0.1:6379> ZCOUNT myzset 1 3<br/>(integer) 4 |
 | [Redis Zadd 命令](https://www.redis.net.cn/order/3609.html)  | Redis Zadd 命令用于将一个或多个成员元素及其分数值加入到有序集当中。<br/><br/>如果某个成员已经是有序集的成员，那么更新这个成员的分数值，并通过重新插入这个成员元素，来保证该成员在正确的位置上。<br/><br/>分数值可以是整数值或双精度浮点数。<br/><br/>如果有序集合 key 不存在，则创建一个空的有序集并执行 ZADD 操作。<br/><br/>当 key 存在但不是有序集类型时，返回一个错误。 | ZADD KEY_NAME SCORE1 VALUE1.. SCOREN VALUEN<br/>可用版本     | 被成功添加的新成员的数量，不包括那些被更新的、已经存在的成员 |                                                              |
 
@@ -2709,7 +2709,7 @@ Reading messages... (press Ctrl-C to quit)
 
 1.  setbit
 
-   setbit <key> <offset> <value>
+   setbit \<key\> \<offset\> \<value\>
 
    setbit  key  16 1 # 代表第 16位为1，其他均为0 ，在第一次初始化bitmaps时候，如果偏移量很大，name整个初始化过程执行会比较慢
 
@@ -2729,7 +2729,7 @@ Reading messages... (press Ctrl-C to quit)
 
  		统计设置为1的bit数量，可以指定获取的范围。
 
-​		bitcount <key> [start end]
+​		bitcount \<key\> [start end]
 
 ​	需要**注意**的是：start 和 end 是按照字节来进行统计的，
 
@@ -2799,9 +2799,9 @@ redis的setbit设置或者清除的是bit位置，而bitcount 计算的是byte�
 | :----------------------------------------------------------- | :----------------------------------------------------------- | ------------------------------------------------------------ | ---- | ------------------------------------------------------------ | ---- |
 | [Redis GEOHASH 命令](https://www.redis.net.cn/order/3687.html) | 返回一个或多个位置元素的 Geohash 表示                        |                                                              |      |                                                              |      |
 | [Redis GEOPOS 命令](https://www.redis.net.cn/order/3688.html) | 从key里返回所有给定位置元素的位置（经度和纬度）              |                                                              |      |                                                              |      |
-| [Redis GEODIST 命令](https://www.redis.net.cn/order/3686.html) | 返回两个给定位置之间的距离<br />如果两个位置之间的其中一个不存在， 那么命令返回空值。<br/><br/>指定单位的参数 unit 必须是以下单位的其中一个：<br/><br/>m 表示单位为米。<br/>km 表示单位为千米。<br/>mi 表示单位为英里。<br/>ft 表示单位为英尺。<br/>如果用户没有显式地指定单位参数， 那么 GEODIST 默认使用米作为单位。<br/><br/>GEODIST 命令在计算距离时会假设地球为完美的球形， 在极限情况下， 这一假设最大会造成 0.5% 的误差。 | redis> GEOADD Sicily 13.361389 38.115556 "Palermo" 15.087269 37.502669 "Catania"<br/>(integer) 2<br/>redis> GEODIST Sicily Palermo Catania<br/>"166274.15156960039"<br/>redis> GEODIST Sicily Palermo Catania km<br/>"166.27415156960038"<br/>redis> GEODIST Sicily Palermo Catania mi<br/>"103.31822459492736"<br/>redis> GEODIST Sicily Foo Bar<br/>(nil)<br/>redis> |      | 计算出的距离会以双精度浮点数的形式被返回。 如果给定的位置元素不存在， 那么命令返回空值。 | 2    |
-| [Redis GEORADIUS 命令](https://www.redis.net.cn/order/3689.html) | 以给定的经纬度为中心， 找出某一半径内的元素<br /><br />以给定的经纬度为中心， 返回键包含的位置元素当中， 与中心的距离不超过给定最大距离的所有位置元素。<br/><br/>范围可以使用以下其中一个单位：<br/><br/>m 表示单位为米。<br/>km 表示单位为千米。<br/>mi 表示单位为英里。<br/>ft 表示单位为英尺。<br/>在给定以下可选项时， 命令会返回额外的信息：<br/><br/>WITHDIST: 在返回位置元素的同时， 将位置元素与中心之间的距离也一并返回。 距离的单位和用户给定的范围单位保持一致。<br/>WITHCOORD: 将位置元素的经度和维度也一并返回。<br/>WITHHASH: 以 52 位有符号整数的形式， 返回位置元素经过原始 geohash 编码的有序集合分值。 这个选项主要用于底层应用或者调试， 实际中的作用并不大。<br/>命令默认返回未排序的位置元素。 通过以下两个参数， 用户可以指定被返回位置元素的排序方式：<br/><br/>ASC: 根据中心的位置， 按照从近到远的方式返回位置元素。<br/>DESC: 根据中心的位置， 按照从远到近的方式返回位置元素。<br/>在默认情况下， GEORADIUS 命令会返回所有匹配的位置元素。 虽然用户可以使用 COUNT <count> 选项去获取前 N 个匹配元素， 但是因为命令在内部可能会需要对所有被匹配的元素进行处理， 所以在对一个非常大的区域进行搜索时， 即使只使用 COUNT 选项去获取少量元素， 命令的执行速度也可能会非常慢。 但是从另一方面来说， 使用 COUNT 选项去减少需要返回的元素数量， 对于减少带宽来说仍然是非常有用的。 | redis> GEOADD Sicily 13.361389 38.115556 "Palermo" 15.087269 37.502669 "Catania"<br/>(integer) 2<br/>redis> GEORADIUS Sicily 15 37 200 km WITHDIST<br/>1) 1) "Palermo"<br/>   2) "190.4424"<br/>2) 1) "Catania"<br/>   2) "56.4413"<br/>redis> GEORADIUS Sicily 15 37 200 km WITHCOORD<br/>1) 1) "Palermo"<br/>   2) 1) "13.361389338970184"<br/>      2) "38.115556395496299"<br/>2) 1) "Catania"<br/>   2) 1) "15.087267458438873"<br/>      2) "37.50266842333162"<br/>redis> GEORADIUS Sicily 15 37 200 km WITHDIST WITHCOORD<br/>1) 1) "Palermo"<br/>   2) "190.4424"<br/>   3) 1) "13.361389338970184"<br/>      2) "38.115556395496299"<br/>2) 1) "Catania"<br/>   2) "56.4413"<br/>   3) 1) "15.087267458438873"<br/>      2) "37.50266842333162"<br/>redis> |      | 在没有给定任何 WITH 选项的情况下， 命令只会返回一个像 [“New York”,”Milan”,”Paris”] 这样的线性（linear）列表。<br/>在指定了 WITHCOORD 、 WITHDIST 、 WITHHASH 等选项的情况下， 命令返回一个二层嵌套数组， 内层的每个子数组就表示一个元素。<br/>在返回嵌套数组时， 子数组的第一个元素总是位置元素的名字。 至于额外的信息， 则会作为子数组的后续元素， 按照以下顺序被返回：<br/><br/>以浮点数格式返回的中心与位置元素之间的距离， 单位与用户指定范围时的单位一致。<br/>geohash 整数。<br/>由两个元素组成的坐标，分别为经度和纬度。<br/>举个例子， GEORADIUS Sicily 15 37 200 km WITHCOORD WITHDIST 这样的命令返回的每个子数组都是类似以下格式的：<br/><br/>["Palermo","190.4424",["13.361389338970184","38.115556395496299"]] | 3    |
-| [Redis GEOADD 命令](https://www.redis.net.cn/order/3685.html) | 将指定的地理空间位置（纬度、经度、名称）添加到指定的key中<br />将指定的地理空间位置（纬度、经度、名称）添加到指定的key中。这些数据将会存储到sorted set这样的目的是为了方便使用GEORADIUS或者GEORADIUSBYMEMBER命令对数据进行半径查询等操作。<br/><br/>该命令以采用标准格式的参数x,y,所以经度必须在纬度之前。这些坐标的限制是可以被编入索引的，区域面积可以很接近极点但是不能索引。具体的限制，由EPSG:900913 / EPSG:3785 / OSGEO:41001 规定如下：<br/><br/>有效的经度从-180度到180度。<br/>有效的纬度从-85.05112878度到85.05112878度。<br/>当坐标位置超出上述指定范围时，该命令将会返回一个错误。<br/>**不能添加南极和北极**<br/>它是如何工作的？<br/>sorted set使用一种称为Geohash的技术进行填充。经度和纬度的位是交错的，以形成一个独特的52位整数. 我们知道，一个sorted set 的double score可以代表一个52位的整数，而不会失去精度。<br/><br/>这种格式允许半径查询检查的1 + 8个领域需要覆盖整个半径，并丢弃元素以外的半径。通过计算该区域的范围，通过计算所涵盖的范围，从不太重要的部分的排序集的得分，并计算得分范围为每个区域的sorted set中的查询。<br/><br/>使用什么样的地球模型（Earth model）？<br/>这只是假设地球是一个球体，因为使用的距离公式是Haversine公式。这个公式仅适用于地球，而不是一个完美的球体。当在社交网站和其他大多数需要查询半径的应用中使用时，这些偏差都不算问题。但是，在最坏的情况下的偏差可能是0.5%，所以一些地理位置很关键的应用还是需要谨慎考虑。 | redis> GEOADD Sicily 13.361389 38.115556 "Palermo" 15.087269 37.502669 "Catania"<br/>(integer) 2<br/>redis> GEODIST Sicily Palermo Catania<br/>"166274.15156960039"<br/>redis> GEORADIUS Sicily 15 37 100 km<br/>1) "Catania"<br/>redis> GEORADIUS Sicily 15 37 200 km<br/>1) "Palermo"<br/>2) "Catania"<br/>redis> |      |                                                              | 1    |
+| [Redis GEODIST 命令](https://www.redis.net.cn/order/3686.html) | 返回两个给定位置之间的距离<br />如果两个位置之间的其中一个不存在， 那么命令返回空值。<br/><br/>指定单位的参数 unit 必须是以下单位的其中一个：<br/><br/>m 表示单位为米。<br/>km 表示单位为千米。<br/>mi 表示单位为英里。<br/>ft 表示单位为英尺。<br/>如果用户没有显式地指定单位参数， 那么 GEODIST 默认使用米作为单位。<br/><br/>GEODIST 命令在计算距离时会假设地球为完美的球形， 在极限情况下， 这一假设最大会造成 0.5% 的误差。 | redis GEOADD Sicily 13.361389 38.115556 "Palermo" 15.087269 37.502669 "Catania"<br/>(integer) 2<br/>redis GEODIST Sicily Palermo Catania<br/>"166274.15156960039"<br/>redis GEODIST Sicily Palermo Catania km<br/>"166.27415156960038"<br/>redis GEODIST Sicily Palermo Catania mi<br/>"103.31822459492736"<br/>redis GEODIST Sicily Foo Bar<br/>(nil)<br/>redis |      | 计算出的距离会以双精度浮点数的形式被返回。 如果给定的位置元素不存在， 那么命令返回空值。 | 2    |
+| [Redis GEORADIUS 命令](https://www.redis.net.cn/order/3689.html) | 以给定的经纬度为中心， 找出某一半径内的元素<br/><br/>以给定的经纬度为中心， 返回键包含的位置元素当中， 与中心的距离不超过给定最大距离的所有位置元素。<br/><br/>范围可以使用以下其中一个单位：<br/><br/>m 表示单位为米。<br/>km 表示单位为千米。<br/>mi 表示单位为英里。<br/>ft 表示单位为英尺。<br/>在给定以下可选项时， 命令会返回额外的信息：<br/><br/>WITHDIST: 在返回位置元素的同时， 将位置元素与中心之间的距离也一并返回。 距离的单位和用户给定的范围单位保持一致。<br/>WITHCOORD: 将位置元素的经度和维度也一并返回。<br/>WITHHASH: 以 52 位有符号整数的形式， 返回位置元素经过原始 geohash 编码的有序集合分值。 这个选项主要用于底层应用或者调试， 实际中的作用并不大。<br/>命令默认返回未排序的位置元素。 通过以下两个参数， 用户可以指定被返回位置元素的排序方式：<br/><br/>ASC: 根据中心的位置， 按照从近到远的方式返回位置元素。<br/>DESC: 根据中心的位置， 按照从远到近的方式返回位置元素。<br/>在默认情况下， GEORADIUS 命令会返回所有匹配的位置元素。 虽然用户可以使用 COUNT \<count\> 选项去获取前 N 个匹配元素， 但是因为命令在内部可能会需要对所有被匹配的元素进行处理， 所以在对一个非常大的区域进行搜索时， 即使只使用 COUNT 选项去获取少量元素， 命令的执行速度也可能会非常慢。 但是从另一方面来说， 使用 COUNT 选项去减少需要返回的元素数量， 对于减少带宽来说仍然是非常有用的。 | redis GEOADD Sicily 13.361389 38.115556 "Palermo" 15.087269 37.502669 "Catania"<br/>(integer) 2<br/>redis GEORADIUS Sicily 15 37 200 km WITHDIST<br/>1) 1) "Palermo"<br/>   2) "190.4424"<br/>2) 1) "Catania"<br/>   2) "56.4413"<br/>redis  GEORADIUS Sicily 15 37 200 km WITHCOORD<br/>1) 1) "Palermo"<br/>   2) 1) "13.361389338970184"<br/>      2) "38.115556395496299"<br/>2) 1) "Catania"<br/>   2) 1) "15.087267458438873"<br/>      2) "37.50266842333162"<br/>redis  GEORADIUS Sicily 15 37 200 km WITHDIST WITHCOORD<br/>1) 1) "Palermo"<br/>   2) "190.4424"<br/>   3) 1) "13.361389338970184"<br/>      2) "38.115556395496299"<br/>2) 1) "Catania"<br/>   2) "56.4413"<br/>   3) 1) "15.087267458438873"<br/>      2) "37.50266842333162"<br/>redis  |      | 在没有给定任何 WITH 选项的情况下， 命令只会返回一个像 [“New York”,”Milan”,”Paris”] 这样的线性（linear）列表。<br/>在指定了 WITHCOORD 、 WITHDIST 、 WITHHASH 等选项的情况下， 命令返回一个二层嵌套数组， 内层的每个子数组就表示一个元素。<br/>在返回嵌套数组时， 子数组的第一个元素总是位置元素的名字。 至于额外的信息， 则会作为子数组的后续元素， 按照以下顺序被返回：<br/><br/>以浮点数格式返回的中心与位置元素之间的距离， 单位与用户指定范围时的单位一致。<br/>geohash 整数。<br/>由两个元素组成的坐标，分别为经度和纬度。<br/>举个例子， GEORADIUS Sicily 15 37 200 km WITHCOORD WITHDIST 这样的命令返回的每个子数组都是类似以下格式的：<br/><br/>["Palermo","190.4424",["13.361389338970184","38.115556395496299"]] | 3    |
+| [Redis GEOADD 命令](https://www.redis.net.cn/order/3685.html) | 将指定的地理空间位置（纬度、经度、名称）添加到指定的key中<br />将指定的地理空间位置（纬度、经度、名称）添加到指定的key中。这些数据将会存储到sorted set这样的目的是为了方便使用GEORADIUS或者GEORADIUSBYMEMBER命令对数据进行半径查询等操作。<br/><br/>该命令以采用标准格式的参数x,y,所以经度必须在纬度之前。这些坐标的限制是可以被编入索引的，区域面积可以很接近极点但是不能索引。具体的限制，由EPSG:900913 / EPSG:3785 / OSGEO:41001 规定如下：<br/><br/>有效的经度从-180度到180度。<br/>有效的纬度从-85.05112878度到85.05112878度。<br/>当坐标位置超出上述指定范围时，该命令将会返回一个错误。<br/>**不能添加南极和北极**<br/>它是如何工作的？<br/>sorted set使用一种称为Geohash的技术进行填充。经度和纬度的位是交错的，以形成一个独特的52位整数. 我们知道，一个sorted set 的double score可以代表一个52位的整数，而不会失去精度。<br/><br/>这种格式允许半径查询检查的1 + 8个领域需要覆盖整个半径，并丢弃元素以外的半径。通过计算该区域的范围，通过计算所涵盖的范围，从不太重要的部分的排序集的得分，并计算得分范围为每个区域的sorted set中的查询。<br/><br/>使用什么样的地球模型（Earth model）？<br/>这只是假设地球是一个球体，因为使用的距离公式是Haversine公式。这个公式仅适用于地球，而不是一个完美的球体。当在社交网站和其他大多数需要查询半径的应用中使用时，这些偏差都不算问题。但是，在最坏的情况下的偏差可能是0.5%，所以一些地理位置很关键的应用还是需要谨慎考虑。 | redis  GEOADD Sicily 13.361389 38.115556 "Palermo" 15.087269 37.502669 "Catania"<br/>(integer) 2<br/>redis GEODIST Sicily Palermo Catania<br/>"166274.15156960039"<br/>redis GEORADIUS Sicily 15 37 100 km<br/>1) "Catania"<br/>redis GEORADIUS Sicily 15 37 200 km<br/>1) "Palermo"<br/>2) "Catania"<br/>redis |      |                                                              | 1    |
 | [Redis GEORADIUSBYMEMBER 命令](https://www.redis.net.cn/order/3690.html) | 找出位于指定范围内的元素，中心点是由给定的位置元素决定       |                                                              |      |                                                              |      |
 
 ## Jedis
@@ -3018,3 +3018,140 @@ public class RedisCacheConfig {
 
 ```
 
+
+
+## Redis 事务
+
+redis事务是一个单独的隔离操作：事务中得所有命令都会序列化，按顺序地执行。事务在执行的过程中，不会被其他客户端发送来的命令请求所打断。redis的事务主要租用是串联多个米宁，防止别人的命令插队
+
+| 命令                                                         | 描述                                                         | 语法 | 返回值         | 示例                                                         |
+| :----------------------------------------------------------- | :----------------------------------------------------------- | ---- | -------------- | ------------------------------------------------------------ |
+| [Redis Exec 命令](https://www.redis.net.cn/order/3639.html)  | 执行所有事务块内的命令。<br />事务块内所有命令的返回值，按命令执行的先后顺序排列。 当操作被打断时，返回空值 nil 。 |      |                | # 事务被成功执行<br/> <br/>redis 127.0.0.1:6379> MULTI<br/>OK<br/> <br/>redis 127.0.0.1:6379> INCR user_id<br/>QUEUED<br/> <br/>redis 127.0.0.1:6379> INCR user_id<br/>QUEUED<br/> <br/>redis 127.0.0.1:6379> INCR user_id<br/>QUEUED<br/> <br/>redis 127.0.0.1:6379> PING<br/>QUEUED<br/> <br/>redis 127.0.0.1:6379> EXEC<br/>1) (integer) 1<br/>2) (integer) 2<br/>3) (integer) 3<br/>4) PONG<br/> <br/> <br/># 监视 key ，且事务成功执行<br/> <br/>redis 127.0.0.1:6379> WATCH lock lock_times<br/>OK<br/> <br/>redis 127.0.0.1:6379> MULTI<br/>OK<br/> <br/>redis 127.0.0.1:6379> SET lock "huangz"<br/>QUEUED<br/> <br/>redis 127.0.0.1:6379> INCR lock_times<br/>QUEUED<br/> <br/>redis 127.0.0.1:6379> EXEC<br/>1) OK<br/>2) (integer) 1<br/> <br/> <br/># 监视 key ，且事务被打断<br/> <br/>redis 127.0.0.1:6379> WATCH lock lock_times<br/>OK<br/> <br/>redis 127.0.0.1:6379> MULTI<br/>OK<br/> <br/>redis 127.0.0.1:6379> SET lock "joe"        # 就在这时，另一个客户端修改了 lock_times 的值<br/>QUEUED<br/> <br/>redis 127.0.0.1:6379> INCR lock_times<br/>QUEUED<br/> <br/>redis 127.0.0.1:6379> EXEC                  # 因为 lock_times 被修改， joe 的事务执行失败<br/>(nil) |
+| [Redis Watch 命令](https://www.redis.net.cn/order/3642.html) | 监视一个(或多个) key ，如果在事务执行之前这个(或这些) key 被其他命令所改动，那么事务将被打断。 |      | 总是返回 OK 。 | WATCH lock lock_times<br/>OK                                 |
+| [Redis Discard 命令](https://www.redis.net.cn/order/3638.html) | 取消事务，放弃执行事务块内的所有命令。                       |      | 总是返回 OK 。 |                                                              |
+| [Redis Unwatch 命令](https://www.redis.net.cn/order/3641.html) | 取消 WATCH 命令对所有 key 的监视。                           |      |                |                                                              |
+| [Redis Multi 命令](https://www.redis.net.cn/order/3640.html) | 标记一个事务块的开始。                                       |      |                | redis 127.0.0.1:6379> MULTI            # 标记事务开始<br/>OK<br/> <br/>redis 127.0.0.1:6379> INCR user_id     # 多条命令按顺序入队<br/>QUEUED<br/> <br/>redis 127.0.0.1:6379> INCR user_id<br/>QUEUED<br/> <br/>redis 127.0.0.1:6379> INCR user_id<br/>QUEUED<br/> <br/>redis 127.0.0.1:6379> PING<br/>QUEUED<br/> <br/>redis 127.0.0.1:6379> EXEC             # 执行<br/>1) (integer) 1<br/>2) (integer) 2<br/>3) (integer) 3<br/>4) PONG |
+
+从输入Muti命令开始，输入的命令会都会一次进入命令队列中，但不会执行，直到输入exec后，redis会将之前的命令队列中得命令来依次执行。组队的过程中可以通过discard来放弃组队。
+
+![](/images/system/redis/004.png)
+
+错误：
+
+* 组队任何一个命令错误，例如set key value (value忘记输入了)  最终都不会执行执行阶段
+
+* 组队成功，执行中哪个有误，则哪个会报错。其他没有错误的命令也会正常操作。
+
+  ```java
+  set c1 v1 
+      incr c1
+      exec 
+      
+  ```
+
+### 事务和锁的机制-事务冲突（悲观锁和乐观锁）
+
+#### 三个请求
+
+总金额为10000，以下共有三个请求同时请求
+
+* 一个请求想消费8000
+
+* 一个请求想消费5000
+* 一个请求想消费1000元
+
+#### 悲观锁
+
+先 向 10000 上锁， 其他动作都不能操作，其他都是block状态，第一次请求完就释放操作。 每次操作之前都是上锁，只有等操作完才释放。
+
+悲观锁：每次拿数据的时候都认为别人会修改。所以每次在拿数据的时候都会上锁，这样别人想拿数据就会阻塞 直到锁释放后，它拿到锁。**行锁，表锁，读锁，写锁** 都是在操作之前先上锁。
+
+
+
+#### 乐观锁
+
+给数据加上version版本号
+
+第一个请求拿到余额，和版本号（1.0.0） 第二个请求拿到余额 和版本号（1.0.0） ，第一个请求去操作时候，带上版本号例如数据库update的时候 version字段为1.0.0 ，更新完后版本则自动加1变为 1.0.1 ，当第二个请求去操作的时候，此时带上的还是1.0.0 ，但是已经没有1.0.0 则更新失败 。
+
+简称：CAS自旋锁 ，而CAS锁只是乐观锁的一种
+
+
+
+
+
+
+
+
+
+### 演示乐观锁和事务特性
+
+```bash
+ # 以下执行的顺序是，先在客户端1 设置test 为1  ，并且 在客户端 1 2 都watch test ,然后客户端1 执行multi 直到exec ，可以成功执行，然后客户端执行multi   直到 exec 则返回null 
+ connected!
+> select 0
+OK
+> set test 1
+OK
+> watch test
+OK
+> multi
+OK
+> incr test
+QUEUED
+> incr test
+QUEUED
+> exec
+2
+3
+
+
+ 192.168.1.232@6379 connected!
+> select 0
+OK
+> watch test
+OK
+> multi
+OK
+> incr test
+QUEUED
+> incr test
+QUEUED
+> exec
+null
+
+```
+
+
+
+#### redis 事务特性
+
+单独的隔离操作
+
+* 事务中的所有命令都会序列化，按顺序地执行。事务在执行地过程中，不会被其他客户端发送过来地命令请求所打断
+
+没有隔离级别地概念
+
+* 队列中地命令没有提交之前都不会实际执行。因为事务提交前任何指令都不会被实际执行
+
+不保证原子性
+
+* 事务中如果有一条命令执行失败，其后地命令依然会被执行，没有回滚
+
+
+
+
+
+### 秒杀案例-（基本实现）
+
+
+
+### ab工具模拟操作
+
+
+
+### 超时和超卖
+
+
+
+### 库存遗留问题
