@@ -3380,17 +3380,70 @@ l **一般情况父进程和子进程会共用同一段物理内存**，只有�
   dbfilename dump.rdb
   dir ./  #  目录
   stop-writes-on-bgsave-error yes # 硬盘已经满了，就停止备份
-  rdbcompression yes ## 备份的文件是否采用压缩
-  rdbchecksum yes # 备份的文件是否完整性检查 大概有10%的性能消耗
+  rdbcompression yes ## 备份的文件是否采用压缩 LZF算法
+  rdbchecksum yes # 备份的文件是否完整性检查 大概有10%的性能消耗 CRC64算法来进行数据校验
   save 
    save <seconds> <changes> [<seconds> <changes> ...]
+   # 自动保存的事件
+    save 3600 1 300 100 60 10000
+    # RDB是整个内存的压缩过的Snapshot，RDB的数据结构，可以配置复合的快照触发条件，
+   # 如果在3600 秒内 至少1个key发生变化 or
+    # 如果在300 秒内 至少100个key发生变化 or
+   #   如果在60 秒内 至少10000个key发生变化 or
+      
   ```
 
   ![](/images/system/redis/007.png)
 
-* 
+  save ：save时只管保存，其它不管，全部阻塞。手动保存。不建议。
+
+  **bgsave**：Redis会在后台异步进行快照操作， **快照同时还可以响应客户端请求。**
+
+  可以通过lastsave 命令获取最后一次成功执行快照的时间
+
+* flushall
+
+  执行flushall命令，也会产生dump.rdb文件，但里面是空的，无意义
+
+####  **rdb文件的备份**
+
+先通过config get dir 查询rdb文件的目录 
+
+将*.rdb的文件拷贝到别的地方
+
+rdb的恢复
+
+* 关闭Redis
+
+* 先把备份的文件拷贝到工作目录下 cp dump2.rdb dump.rdb
+
+*  启动Redis, 备份数据会直接加载
+
+#### 优势
 
 
+
+![](/images/system/redis/008.png)
+
+* 适合大规模的数据恢复
+
+* 对数据完整性和一致性要求不高更适合使用
+
+* 节省磁盘空间
+
+* 恢复速度快
+
+#### 劣势
+
+* Fork的时候，内存中的数据被克隆了一份，大致2倍的膨胀性需要考虑
+
+* 虽然Redis在fork时使用了**写时拷贝技术**,但是如果数据庞大时还是比较消耗性能。
+
+* 在备份周期在一定间隔时间做一次备份，所以如果Redis意外down掉的话，就会丢失最后一次快照后的所有修改。
+
+####  手动停止
+
+redis-cli config set save  ""      #save后给空值，表示禁用保存策略
 
 ### AOF（Append Only File）
 
