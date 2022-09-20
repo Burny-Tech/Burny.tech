@@ -38,6 +38,14 @@
 
 ```java
         Map<Long, List<Stock>> collect1 = all1.stream().collect(Collectors.groupingBy(b -> b.getBrandId()));
+//相同报错
+Map<Long, User> maps = userList.stream().collect(Collectors.toMap(User::getId,Function.identity()));
+//相同不报错
+        Map<Long, User> maps = userList.stream().collect(Collectors.toMap(User::getId, Function.identity(), (key1, key2) -> key2));
+
+   
+Map<Long, String> maps = userList.stream().collect(Collectors.toMap(User::getId, User::getAge, (key1, key2) -> key2));
+
 
 ```
 
