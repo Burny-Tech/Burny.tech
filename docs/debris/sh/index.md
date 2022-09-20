@@ -4,7 +4,9 @@
 
 ## [限制用户使用命令](./sh/xianzhi.md)
 
-## systemctl启动失败查看
+##  [httpd-toos ab测试](./sh/httpd-tools.md)
+
+systemctl启动失败查看
 
 ```shell
  journalctl -u rabbitmq-server

@@ -3142,16 +3142,261 @@ null
 
 
 
-### 秒杀案例-（基本实现）
+```sh
+# yum install httpd-tools
+ab -help
+ab [options] [hosts:port/path]
+ab 
+-n  requests:表示当前请求次数
+-c  current :表示当前并发次数
+-n 1000 -c 100 有100个是并发的
+-t 如果适用POST或者PUT 提交 ，Content-type:application/x-www-form-urlencoded;
+-p 如果是post请求则是请求体   postifile 请求体 
+
+```
+
+## Redis示例
+
+### Jedis
 
 
 
-### ab工具模拟操作
+```java
+package tech.burny.burnyredis01;
+
+import lombok.extern.slf4j.Slf4j;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.Transaction;
+
+import java.util.List;
+
+/**
+ * @Author: cyx
+ * @Date: 2022/9/17 15:48
+ * @ProjectName: IntelliJ IDEA
+ * @Description:
+ */
+@Slf4j
+public class Redis01 {
+    public static  boolean  dotest(String uid,String prodId){
+        //1.连接redis
+
+        Jedis jedis=new Jedis("192.168.1.202",6379);
 
 
 
-### 超时和超卖
 
 
 
-### 库存遗留问题
+        //2.拼接key  库存key + 秒杀用户的key
+        String kcKey="sk:"+prodId+":qt";
+        String userKey="sk:"+prodId+":user";
+
+        String kc=jedis.get(kcKey);
+        //3.获取库存，如果库存为空，则秒杀活动还没开始
+        if (kc ==null){
+            log.info("秒杀还没开始");
+            jedis.close();
+            return false;
+        }
+        //4.开始秒杀
+        //5.每个用户只能秒杀一次
+        boolean sismember = jedis.sismember(userKey, uid);
+        if (sismember){
+            log.info("已经秒杀成功，不能重复秒杀");
+            jedis.close();
+return false;
+        }
+
+        // 判断如果商品数量或者库存数量小于0 ，则秒杀结束
+        if (Integer.parseInt(kc)<=0){
+            log.info("秒杀结束");
+            jedis.close();
+            return false;
+        }
+
+
+
+        jedis.decr(kcKey);
+        jedis.sadd(userKey,uid);
+        jedis.close();
+        //库存减一
+        //把秒杀成功的用户需要加到清单里面
+        //yum install httpd-tools
+
+        //第二示例：
+                JedisPool instance =
+                JedisPoolUtil.getInstance();
+        Jedis resource = instance.getResource();
+
+        Transaction multi = resource.multi();
+        //组队操作
+        //组队操作 秒杀过程
+        multi.decr(kcKey);
+        multi.sadd(userKey,uid);
+        //剔除队伍操作
+        multi.discard();
+        List<Object> exec = multi.exec();
+
+        return true;
+    }
+}
+
+```
+
+
+
+### JedisPool
+
+```java
+package tech.burny.burnyredis01;
+
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
+
+/**
+ * @Author: cyx
+ * @Date: 2022/9/20 22:21
+ * @ProjectName: IntelliJ IDEA
+ * @Description:
+ */
+public class JedisPoolUtil {
+    
+    //可解决超时报错问题
+    private static  volatile JedisPool jedisPool=null;
+    public static JedisPool getInstance(){
+        if (null==jedisPool){
+            synchronized (JedisPoolUtil.class){
+                if (null==jedisPool){
+                    JedisPoolConfig config=new JedisPoolConfig();
+                    config.setMaxTotal(200); //最大连接数  控制一个 pool 可分配多少个 jedis 实例，通过 pool.getResource () 来获取；如果赋值为 - 1，则表示不限制；如果 pool 已经分配了 MaxTotal 个 jedis 实例，则此时 pool 的状态为 exhausted。
+
+                    config.setMaxIdle(32);//表示当borrow一个jedis实例时，最大的等待毫秒数，如果超过等待时间，则直接抛JedisConnectionException；
+                    config.setMaxWaitMillis(100*100); //超过连接数是否等待
+                    config.setBlockWhenExhausted(true);
+                    config.setTestOnBorrow(true); //# ping
+                    jedisPool=new JedisPool(config,"192.168.1.202",6379,60*1000);
+                }
+            }
+        }
+        return  jedisPool;
+    }
+
+
+
+
+
+}
+
+```
+
+### 库存遗留问题（redis和java程序 整个方法没有原子性问题）LUA脚本*
+
+
+
+* 作为嵌入式语言
+* 一次性交给redis执行，减少反复连接redis的次数，提升性能
+* LUA脚本类似redis的事务，有一定的原子性，不会被其他命令插队，可以完成一些redis事务的操作
+* 需要2.6以上版本
+* 通过lua脚本解决争抢问题，实际上是redis利用其单线程的特性，用任务队列的方式解决多任务并发的问题
+
+```:
+
+
+local userid=keys[1]; # 定义标量，要求输入
+local prodid=keys[2];
+local qtkey="sk:"..prodid..":qt";  # 字符串拼接
+local userskey="sk:"..prodid.."usr";
+local userExits=redis.call("sismember",userskey,userid);  # 调用方法
+if tonumber(userExits)==1 then
+     return 2;  # 约定俗称：如果为2则为失败
+end
+local num=redis.call("get",qtkey);
+if tonumber(num)< =0 then 
+  return 2;
+else
+ redis.call("decr",qtkey);
+ redis.call("sadd",userkey,userid);
+end;
+return 1;
+
+
+
+
+```
+
+java调用
+
+
+
+```java
+        Jedis resource1 = instance.getResource();
+        String jiaoben="....";
+        String s = resource1.scriptLoad(jiaoben);
+        
+```
+
+## Redis持久化操作
+
+三种方式。
+
+官网地址说明
+
+![](/images/system/redis/005.png)
+
+### RDB（Redis Database）
+
+> 在指定的**时间间隔**内将内存中**的数据集快照**写入磁盘
+
+全部数据的快照
+
+#### 备份执行
+
+
+
+![](/images/system/redis/006.png)
+
+##### 过程
+
+Redis会单独创建（fork）一个子进程来进行持久化，会先将数据写入到 一个临时文件中，待持久化过程都结束了，再用这个临时文件替换上次持久化好的文件。 整个过程中，主进程是不进行任何IO操作的，这就确保了极高的性能 如果需要进行大规模数据的恢复，且对于数据恢复的完整性不是非常敏感，那RDB方式要比AOF方式更加的高效。RDB的缺点是最后一次持久化后的数据可能丢失。
+
+##### Fork
+
+l Fork的作用是复制一个与当前进程一样的进程。新进程的所有数据（变量、环境变量、程序计数器等） 数值都和原进程一致，但是是一个全新的进程，并作为原进程的子进程
+
+l 在Linux程序中，fork()会产生一个和父进程完全相同的子进程，但子进程在此后多会exec系统调用，出于效率考虑，Linux中引入了“**写时复制技术**”
+
+l **一般情况父进程和子进程会共用同一段物理内存**，只有进程空间的各段的内容要发生变化时，才会将父进程的内容复制一份给子进程。
+
+
+
+* dump.rdb文件
+
+  在redis.conf配置中配置文件名称，默认为dump.rdb
+
+  ```sh
+  # The filename where to dump the DB 文件名
+  dbfilename dump.rdb
+  dir ./  #  目录
+  stop-writes-on-bgsave-error yes # 硬盘已经满了，就停止备份
+  rdbcompression yes ## 备份的文件是否采用压缩
+  rdbchecksum yes # 备份的文件是否完整性检查 大概有10%的性能消耗
+  save 
+   save <seconds> <changes> [<seconds> <changes> ...]
+  ```
+
+  ![](/images/system/redis/007.png)
+
+* 
+
+
+
+### AOF（Append Only File）
+
+
+
+#### RDB + AOF
+
+
+
