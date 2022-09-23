@@ -64,3 +64,27 @@ flush privileges;
 - CREATE USER：表示授予用户可以创建和删除新用户的权限。
 - SHOW DATABASES：表示授予用户可以使用 SHOW DATABASES 语句查看所有已有的数据库的定义的权限。
 
+## 查询表结构
+
+
+
+```sql
+use data_standard; # 使用哪个库
+show TABLES;  # 展示所有的表
+desc/DESCRIBE  table_category_rel;  # 表结构
+show create table  table_category_rel; # 创建语句
+
+use information_schema;
+
+show DATABASEs; # 当前账号可查看的所有数据库
+
+SELECT * from  TABLES ; # 提供了关于数据库中的表的信息（包括视图）。详细表述了某个表属于哪个schema，表类型，表引擎，创建时间等信息。是show tables from schemaname的结果取之此表
+SELECT * from COLUMNS; # 提供了表中的列信息。详细表述了某张表的所有列以及每个列的信息。是show columns from schemaname.tablename的结果取之此表。
+SELECT * from STATISTICS; # 提供了关于表索引的信息。是show index from schemaname.tablename的结果取之此表。
+SELECT * from USER_PRIVILEGES; # 用户权限表：给出了关于全程权限的信息。该信息源自mysql.user授权表。是非标准表
+SELECT * from SCHEMA_PRIVILEGEs; # 方案权限）表：给出了关于方案（数据库）权限的信息。该信息来自mysql.db授权表。是非标准表。
+SELECT * from TABLE_CONSTRAINTS; # 描述了存在约束的表。以及表的约束类型。
+select * from VIEWS; # 给出了关于数据库中的视图的信息。需要有show views权限，否则无法查看视图信息。
+```
+
+[来源](https://blog.csdn.net/u011250186/article/details/124377147)
