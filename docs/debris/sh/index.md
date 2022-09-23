@@ -17,6 +17,9 @@ systemctl启动失败查看
 
 ```shell
 firewall-cmd  --zone=public --permanent --add-port=21110/tcp
+firewall-cmd  --zone=public --permanent --add-port=6379/tcp
+firewall-cmd --reload
+firewall-cmd  --zone=public --permanent --add-port=16379/tcp
 firewall-cmd --reload
 
 ```
