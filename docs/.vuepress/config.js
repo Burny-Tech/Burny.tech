@@ -98,6 +98,9 @@ module.exports = {
         {
           text: 'Redis',
           children: ['/system/redis/index.md']
+        }, {
+          text: 'Arthas',
+          children: ['/system/Arthas/index.md']
         },
         {
           text: 'SpringSecurity',
