@@ -28,3 +28,10 @@ footerHtml: true
 [gradle](https://docs.gradle.org/current/userguide/more_about_tasks.html)  
 
 [阿里云](https://start.aliyun.com/)
+
+
+
+
+优秀博主
+[夕颜](http://notes.xiyankt.com/#/)
+[pdai](https://pdai.tech/)

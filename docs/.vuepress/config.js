@@ -39,12 +39,12 @@ module.exports = {
       {
         text: '碎片化笔记',
         //activeMatch: '/debris',
-        link: '/debris/git/index.md'
+        link: '/debris/index.md'
       },
       {
         text: '系统学习的笔记',
         //activeMatch: '/system',
-        link: '/system/gradle/index.md'
+        link: '/system/index.md'
       },
     ],
 
