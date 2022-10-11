@@ -64,7 +64,7 @@ flush privileges;
 - CREATE USER：表示授予用户可以创建和删除新用户的权限。
 - SHOW DATABASES：表示授予用户可以使用 SHOW DATABASES 语句查看所有已有的数据库的定义的权限。
 
-## 查询表结构
+## 查询表元信息结构
 
 
 
@@ -85,6 +85,97 @@ SELECT * from USER_PRIVILEGES; # 用户权限表：给出了关于全程权限�
 SELECT * from SCHEMA_PRIVILEGEs; # 方案权限）表：给出了关于方案（数据库）权限的信息。该信息来自mysql.db授权表。是非标准表。
 SELECT * from TABLE_CONSTRAINTS; # 描述了存在约束的表。以及表的约束类型。
 select * from VIEWS; # 给出了关于数据库中的视图的信息。需要有show views权限，否则无法查看视图信息。
+
+
 ```
 
 [来源](https://blog.csdn.net/u011250186/article/details/124377147)
+
+## 命令行界面select 后乱序无法查看
+
+```sh
+# 在后面加上\G即可
+select * from test\G
+```
+
+
+
+
+
+## 查看所有进程
+
+```sh
+SELECT * from information_schema.processlist WHERE host like  '%192.168.1.102%'
+```
+
+## 查看MySQL执行记录
+
+
+
+```sh
+#  查看profiling设置,是否开启
+SHOW GLOBAL VARIABLES LIKE "profiling%"
+SET GLOBAL profiling = ON
+# 查看最近执行的SQL,可以得到ID
+SHOW PROFILES
+# 将ID赋值到下面的语句中，既可以查看执行时基础数据
+SHOW PROFILE cpu,block io for 34;
+```
+
+
+
+### 查看全局查询日志
+
+
+
+```sh
+
+#
+SHOW GLOBAL VARIABLES LIKE "general_log%"
+SET GLOBAL general_log = ON
+#设置表明
+SET GLOBAL log_output = "TABLE" # 此处不设置，默认为 general_log
+SHOW GLOBAL VARIABLES LIKE "log_output%"
+
+# 
+select * from mysql.general_log
+#线上不建议开启
+
+```
+
+
+
+
+
+## 触发器 定时任务 - 定时保存表 的占用空间和行数
+
+
+
+```sh
+
+# 定时任务 查看是否开启  启动定时器
+ select * from  mysql.event;
+SHOW GLOBAL VARIABLES LIKE '%sql_mode%'
+set GLOBAL event_scheduler = 1;
+# 删除定时任务
+DROP EVENT IF EXISTS patrol_data_event;
+DROP EVENT  patrol_data_event;
+
+# 新增定时任务
+
+
+CREATE EVENT if not exists  patrol_data_event ON 
+-- SCHEDULE EVERY 5 SECOND 
+SCHEDULE EVERY 1 Day 
+starts '2022-09-26 23:59:00'
+DO
+INSERT INTO patrol_database.patrol_data ( date, table_name, data_size, table_rows, table_schema ) SELECT
+CURDATE(),
+TABLE_NAME,
+TRUNCATE (( data_length + index_length )/ 1024 / 1024, 2 ) AS data_size,-- 查看数据+索引占用大小单位为MB
+table_rows,
+table_schema 
+FROM
+	information_schema.TABLES;
+```
+

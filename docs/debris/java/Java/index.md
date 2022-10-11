@@ -70,3 +70,13 @@ Linux环境变量
  fdsafdsa 
 ```
 
+
+
+## The last packet sent successfully to the server was 0 milliseconds ago. The
+
+```yml
+     更改如下：
+     url: jdbc:mysql://192.168.1.62/data_standard?useSSL=false&autoReconnect=true&characterEncoding=UTF-8&nullCatalogMeansCurrent=true&autoReconnect=true&failOverReadOnly=false&maxReconnects=100
+
+```
+
