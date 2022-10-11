@@ -27,7 +27,7 @@ module.exports = {
 
   open: false,
   debug: true,
-  port: 10059,
+  port: 80,
 
   theme: defaultTheme({
     // 默认主题配置
