@@ -103,6 +103,10 @@ module.exports = {
           children: ['/system/Arthas/index.md']
         },
         {
+          text: 'Docker',
+          children: ['/system/docker/index.md']
+        },
+        {
           text: 'SpringSecurity',
           children: ['/system/SpringSecurity/index.md']
         },

@@ -19,7 +19,7 @@ always 	在容器已经stop掉或Docker stoped/restarted的时候才重启容器
 docker run --restart always --name mynginx -d nginx
 
 #如果容器已经被创建，
-docker update --restart no mynginx
+docker update --restart always mynginx
 ```
 
 
