@@ -1856,7 +1856,7 @@ show  slave  status \G;  #再次查看
 
   将各个服务器使用Hash进行一个哈希，具体可以选择服务器的IP或主机名作为关键字进行哈希，这样每台机器就能确定其在哈希环上的位置。假如4个节点NodeA、B、C、D，经过IP地址的哈希函数计算(hash(ip))，使用IP地址哈希后在环空间的位置如下：
 
-![](/system/images/docker/015.png)
+![](/images/system/docker/015.png)
 
 3.
 
@@ -1884,7 +1884,7 @@ show  slave  status \G;  #再次查看
 
 为了解决均匀分配的问题，在数据和节点之间又加入了一层，把这层称为哈希槽（slot），用于管理数据和节点之间的关系，现在就相当于节点上放的是槽，槽里放的是数据。
 
-![](/system/images/docker/016.png)
+![](/images/system/docker/016.png)
 
 槽解决的是粒度问题，相当于把粒度变大了，这样便于数据移动。
 
@@ -2290,7 +2290,7 @@ services:
 
 ::::
 
-![](/system/images/docker/017.png)
+![](/images/system/docker/017.png)
 
 
 
