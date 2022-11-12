@@ -105,6 +105,10 @@ module.exports = {
         {
           text: 'Docker',
           children: ['/system/docker/index.md']
+        }, {
+          text: 'kubernetes',
+          link: '/system/kubernetes/index.md',
+          children: ['/system/kubernetes/index.md']
         },
         {
           text: 'SpringSecurity',

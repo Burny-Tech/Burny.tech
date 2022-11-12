@@ -1753,7 +1753,6 @@ firewall-cmd  --zone=public --permanent --add-port=3307/tcp
 firewall-cmd  --zone=public --permanent --add-port=3308/tcp
 firewall-cmd --reload
 
-
 # 步骤一
 docker run -p 3307:3306 --name mysql-master --privileged=true -v /mydata/mysql-master/log:/var/log/mysql -v /mydata/mysql-master/data:/var/lib/mysql -v /mydata/mysql-master/conf:/etc/mysql --restart=always  -e MYSQL_ROOT_PASSWORD=123456 -d  -itd mysql:8
 
@@ -1900,7 +1899,7 @@ show  slave  status \G;  #再次查看
 
 Redis 集群中内置了 16384 个哈希槽，redis 会根据节点数量大致均等的将哈希槽映射到不同的节点。当需要在 Redis 集群中放置一个 key-value时，redis 先对 key 使用 crc16 算法算出一个结果，然后把结果对 16384 求余数，这样每个 key 都会对应一个编号在 0-16383 之间的哈希槽，也就是映射到某个节点上。如下代码，key之A 、B在Node2， key之C落在Node3上
 
-### 部署
+### 部署一:比较麻烦,
 
 ```sh
 
@@ -2303,24 +2302,1396 @@ services:
     }
 ```
 
+### 部署二:命令居多
+
+![](/images/system/docker/018.png)
+
+#### 三主三从
+
+```sh
+
+firewall-cmd  --zone=public --permanent --add-port=6381/tcp
+firewall-cmd  --zone=public --permanent --add-port=6382/tcp
+firewall-cmd  --zone=public --permanent --add-port=6383/tcp
+firewall-cmd  --zone=public --permanent --add-port=6384/tcp
+firewall-cmd  --zone=public --permanent --add-port=6385/tcp
+firewall-cmd  --zone=public --permanent --add-port=6386/tcp
+firewall-cmd --reload
+
+
+# 下载运行
+docker run -d --name redis-node-1 --net host --privileged=true -v /data/redis/share/redis-node-1:/data redis --cluster-enabled yes --appendonly yes --port 6381
+docker run -d --name redis-node-2 --net host --privileged=true -v /data/redis/share/redis-node-2:/data redis --cluster-enabled yes --appendonly yes --port 6382
+docker run -d --name redis-node-3 --net host --privileged=true -v /data/redis/share/redis-node-3:/data redis --cluster-enabled yes --appendonly yes --port 6383
+docker run -d --name redis-node-4 --net host --privileged=true -v /data/redis/share/redis-node-4:/data redis --cluster-enabled yes --appendonly yes --port 6384
+docker run -d --name redis-node-5 --net host --privileged=true -v /data/redis/share/redis-node-5:/data redis --cluster-enabled yes --appendonly yes --port 6385
+docker run -d --name redis-node-6 --net host --privileged=true -v /data/redis/share/redis-node-6:/data redis --cluster-enabled yes --appendonly yes --port 6386
+
+# 自动构建主从关系
+ docker exec -it redis-node-1 /bin/bash
+ 
+redis-cli --cluster create 192.168.1.157:6381 192.168.1.157:6382 192.168.1.157:6383 192.168.1.157:6384 192.168.1.157:6385 192.168.1.157:6386 --cluster-replicas 1
+
+# --cluster-replicas 1 表示为每个master创建一个slave节点
+
+
+>>> Performing hash slots allocation on 6 nodes...
+Master[0] -> Slots 0 - 5460
+Master[1] -> Slots 5461 - 10922
+Master[2] -> Slots 10923 - 16383
+Adding replica 192.168.1.157:6385 to 192.168.1.157:6381
+Adding replica 192.168.1.157:6386 to 192.168.1.157:6382
+Adding replica 192.168.1.157:6384 to 192.168.1.157:6383
+>>> Trying to optimize slaves allocation for anti-affinity
+[WARNING] Some slaves are in the same host as their master
+M: 3bc5b5ae5b9310690d9194c0aac71192a1d082ca 192.168.1.157:6381
+   slots:[0-5460] (5461 slots) master
+M: 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7 192.168.1.157:6382
+   slots:[5461-10922] (5462 slots) master
+M: 0a6511b85d5fc244797196338ce60df1bac192b2 192.168.1.157:6383
+   slots:[10923-16383] (5461 slots) master
+S: 8884804172514bfe95932a86553a35c98255673c 192.168.1.157:6384
+   replicates 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7
+S: 92a3146736da4e2b5139c0ebd776dd416ca1f2f3 192.168.1.157:6385
+   replicates 0a6511b85d5fc244797196338ce60df1bac192b2
+S: 8be2d91fa0b46ff7f1bd0b8498452386011ffb6d 192.168.1.157:6386
+   replicates 3bc5b5ae5b9310690d9194c0aac71192a1d082ca
+Can I set the above configuration? (type 'yes' to accept): yes
+>>> Nodes configuration updated
+>>> Assign a different config epoch to each node
+>>> Sending CLUSTER MEET messages to join the cluster
+Waiting for the cluster to join
+.
+# 下面是分配主从的信息
+>>> Performing Cluster Check (using node 192.168.1.157:6381)
+M: 3bc5b5ae5b9310690d9194c0aac71192a1d082ca 192.168.1.157:6381
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+M: 0a6511b85d5fc244797196338ce60df1bac192b2 192.168.1.157:6383
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+S: 8884804172514bfe95932a86553a35c98255673c 192.168.1.157:6384
+   slots: (0 slots) slave
+   replicates 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7
+M: 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7 192.168.1.157:6382
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+S: 8be2d91fa0b46ff7f1bd0b8498452386011ffb6d 192.168.1.157:6386
+   slots: (0 slots) slave
+   replicates 3bc5b5ae5b9310690d9194c0aac71192a1d082ca
+S: 92a3146736da4e2b5139c0ebd776dd416ca1f2f3 192.168.1.157:6385
+   slots: (0 slots) slave
+   replicates 0a6511b85d5fc244797196338ce60df1bac192b2
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+root@localhost:/data# 
+
+
+
+redis-cli  -p 6381
+# 查看集群信息
+cluster info
+
+127.0.0.1:6381> cluster info
+cluster_state:ok
+cluster_slots_assigned:16384
+cluster_slots_ok:16384
+cluster_slots_pfail:0
+cluster_slots_fail:0
+cluster_known_nodes:6
+cluster_size:3
+cluster_current_epoch:6
+cluster_my_epoch:1
+cluster_stats_messages_ping_sent:102
+cluster_stats_messages_pong_sent:109
+cluster_stats_messages_sent:211
+cluster_stats_messages_ping_received:104
+cluster_stats_messages_pong_received:102
+cluster_stats_messages_meet_received:5
+cluster_stats_messages_received:211
+
+# 查看集群节点
+cluster nodes
+
+127.0.0.1:6381> cluster nodes
+0a6511b85d5fc244797196338ce60df1bac192b2 192.168.1.157:6383@16383 master - 0 1666058249000 3 connected 10923-16383
+8884804172514bfe95932a86553a35c98255673c 192.168.1.157:6384@16384 slave 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7 0 1666058248000 2 connected
+6a1f29ff5f2ed047ca0e23df8749a0388afe78a7 192.168.1.157:6382@16382 master - 0 1666058249083 2 connected 5461-10922
+8be2d91fa0b46ff7f1bd0b8498452386011ffb6d 192.168.1.157:6386@16386 slave 3bc5b5ae5b9310690d9194c0aac71192a1d082ca 0 1666058247000 1 connected
+3bc5b5ae5b9310690d9194c0aac71192a1d082ca 192.168.1.157:6381@16381 myself,master - 0 1666058247000 1 connected 0-5460
+92a3146736da4e2b5139c0ebd776dd416ca1f2f3 192.168.1.157:6385@16385 slave 0a6511b85d5fc244797196338ce60df1bac192b2 0 1666058250104 3 connected
+# 说明
+主机说明
+集群中各个的id   ip:port@集群port  master(主机)  0  1666(未知)     1,2,3未知   已连接  槽位
+备机说明
+集群中各个的id   ip:port@集群port   slave(备机)  属于哪一台主机   0   166(未知)      1,2,3未知   已连接
+  
+
+# 加入单机命令,不建议使用
+ redis-cli  -p 6381
+
+# 加入集群命令
+ redis-cli  -p 6381 -c
+
+# 集群计算 k1 应该放在12706槽中,自动跳转到了6383的机器上
+127.0.0.1:6381> set k1 v1
+-> Redirected to slot [12706] located at 192.168.1.157:6383
+OK
+
+
+# 停止掉6381 
+# 确认集群中某个机器的信息
+root@localhost:/data# redis-cli  --cluster check 192.168.1.157:6382
+Could not connect to Redis at 192.168.1.157:6381: Connection refused
+192.168.1.157:6382 (6a1f29ff...) -> 0 keys | 5462 slots | 1 slaves.
+192.168.1.157:6386 (8be2d91f...) -> 0 keys | 5461 slots | 0 slaves.
+192.168.1.157:6383 (0a6511b8...) -> 1 keys | 5461 slots | 1 slaves.
+[OK] 1 keys in 3 masters.
+0.00 keys per slot on average.
+>>> Performing Cluster Check (using node 192.168.1.157:6382)
+M: 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7 192.168.1.157:6382
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+M: 8be2d91fa0b46ff7f1bd0b8498452386011ffb6d 192.168.1.157:6386
+   slots:[0-5460] (5461 slots) master
+S: 92a3146736da4e2b5139c0ebd776dd416ca1f2f3 192.168.1.157:6385
+   slots: (0 slots) slave
+   replicates 0a6511b85d5fc244797196338ce60df1bac192b2
+S: 8884804172514bfe95932a86553a35c98255673c 192.168.1.157:6384
+   slots: (0 slots) slave
+   replicates 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7
+M: 0a6511b85d5fc244797196338ce60df1bac192b2 192.168.1.157:6383
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+root@localhost:/data# redis-cli  --cluster check 192.168.1.157:6381
+Could not connect to Redis at 192.168.1.157:6381: Connection refused
+root@localhost:/data# 
+
+# 查看集群信息
+192.168.1.157:6382> cluster nodes
+6a1f29ff5f2ed047ca0e23df8749a0388afe78a7 192.168.1.157:6382@16382 myself,master - 0 1666059409000 2 connected 5461-10922
+3bc5b5ae5b9310690d9194c0aac71192a1d082ca 192.168.1.157:6381@16381 master,fail - 1666058711585 1666058709000 1 disconnected
+# 主机,但是失败了 已经断开链接
+8be2d91fa0b46ff7f1bd0b8498452386011ffb6d 192.168.1.157:6386@16386 master - 0 1666059409374 7 connected 0-5460   (成为了新的master) 
+92a3146736da4e2b5139c0ebd776dd416ca1f2f3 192.168.1.157:6385@16385 slave 0a6511b85d5fc244797196338ce60df1bac192b2 0 1666059408000 3 connected
+8884804172514bfe95932a86553a35c98255673c 192.168.1.157:6384@16384 slave 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7 0 1666059408353 2 connected
+0a6511b85d5fc244797196338ce60df1bac192b2 192.168.1.157:6383@16383 master - 0 1666059410392 3 connected 10923-16383
+# 重启6381 之后,原来master就变成了slave 
+
+# 主从扩容
+
+
+
+```
+
+
+
+#### 主从扩容--四主四从
+
+```sh
+
+
+firewall-cmd  --zone=public --permanent --add-port=6387/tcp
+firewall-cmd  --zone=public --permanent --add-port=6388/tcp
+firewall-cmd --reload
+docker run -d --name redis-node-7 --net host --privileged=true -v /data/redis/share/redis-node-7:/data redis --cluster-enabled yes --appendonly yes --port 6387
+docker run -d --name redis-node-8 --net host --privileged=true -v /data/redis/share/redis-node-8:/data redis --cluster-enabled yes --appendonly yes --port 6388
+
+# 6387 master 6388 slave
+# 将6387加入原来的6381 (任意一个master)
+docker exec -it redis-node-7  /bin/bash
+root@localhost:/data# redis-cli --cluster add-node  192.168.1.157:6387  192.168.1.157:6381
+
+
+>>> Adding node 192.168.1.157:6387 to cluster 192.168.1.157:6381
+>>> Performing Cluster Check (using node 192.168.1.157:6381)
+S: 3bc5b5ae5b9310690d9194c0aac71192a1d082ca 192.168.1.157:6381
+   slots: (0 slots) slave
+   replicates 8be2d91fa0b46ff7f1bd0b8498452386011ffb6d
+M: 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7 192.168.1.157:6382
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+M: 0a6511b85d5fc244797196338ce60df1bac192b2 192.168.1.157:6383
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+S: 92a3146736da4e2b5139c0ebd776dd416ca1f2f3 192.168.1.157:6385
+   slots: (0 slots) slave
+   replicates 0a6511b85d5fc244797196338ce60df1bac192b2
+S: 8884804172514bfe95932a86553a35c98255673c 192.168.1.157:6384
+   slots: (0 slots) slave
+   replicates 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7
+M: 8be2d91fa0b46ff7f1bd0b8498452386011ffb6d 192.168.1.157:6386
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+>>> Send CLUSTER MEET to node 192.168.1.157:6387 to make it join the cluster.
+[OK] New node added correctly.
+
+# 查看集群情况
+root@localhost:/data# redis-cli --cluster check 192.168.1.157:6381                        
+192.168.1.157:6382 (6a1f29ff...) -> 0 keys | 5462 slots | 1 slaves.
+192.168.1.157:6383 (0a6511b8...) -> 1 keys | 5461 slots | 1 slaves.
+192.168.1.157:6386 (8be2d91f...) -> 0 keys | 5461 slots | 1 slaves.
+192.168.1.157:6387 (dcb723e6...) -> 0 keys | 0 slots | 0 slaves.
+[OK] 1 keys in 4 masters.
+0.00 keys per slot on average.
+>>> Performing Cluster Check (using node 192.168.1.157:6381)
+S: 3bc5b5ae5b9310690d9194c0aac71192a1d082ca 192.168.1.157:6381
+   slots: (0 slots) slave
+   replicates 8be2d91fa0b46ff7f1bd0b8498452386011ffb6d
+M: 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7 192.168.1.157:6382
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+M: 0a6511b85d5fc244797196338ce60df1bac192b2 192.168.1.157:6383
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+S: 92a3146736da4e2b5139c0ebd776dd416ca1f2f3 192.168.1.157:6385
+   slots: (0 slots) slave
+   replicates 0a6511b85d5fc244797196338ce60df1bac192b2
+S: 8884804172514bfe95932a86553a35c98255673c 192.168.1.157:6384
+   slots: (0 slots) slave
+   replicates 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7
+M: 8be2d91fa0b46ff7f1bd0b8498452386011ffb6d 192.168.1.157:6386
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+   #发现没有槽位
+M: dcb723e66c7f0850d66f8fbd3f970ef0be1f238c 192.168.1.157:6387
+   slots: (0 slots) master
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+
+# 重新分配槽位
+redis-cli --cluster reshard 192.168.1.157:6387
+
+How many slots do you want to move (from 1 to 16384)? 
+How many slots do you want to move (from 1 to 16384)? 
+How many slots do you want to move (from 1 to 16384)? 
+How many slots do you want to move (from 1 to 16384)? 
+4096 个槽位
+
+=16384/4=4096 个
+#重新分配槽位
+all
+# yes
+
+# 查看 重新分配slot
+
+ redis-cli --cluster check 192.168.1.157:6381
+
+#发现slot并不是连续的而是每个master每个人分配一点给新的master节点
+M: dcb723e66c7f0850d66f8fbd3f970ef0be1f238c 192.168.1.157:6387
+   slots:[0-1364],[5461-6826],[10923-12287] (4096 slots) master
+
+
+# 将6388挂载到6387
+
+命令：redis-cli --cluster add-node 192.168.1.157:6388  192.168.1.157:6387  --cluster-slave --cluster-master-id   dcb723e66c7f0850d66f8fbd3f970ef0be1f238c   新主机节点ID(通过上面的命令可查看id ,也就是分配slot的时候输入的id )
+ 
+
+root@localhost:/data# redis-cli --cluster add-node 192.168.1.157:6388  192.168.1.157:6387  --cluster-slave --cluster-master-id   dcb723e66c7f0850d66f8fbd3f970ef0be1f238c
+>>> Adding node 192.168.1.157:6388 to cluster 192.168.1.157:6387
+>>> Performing Cluster Check (using node 192.168.1.157:6387)
+M: dcb723e66c7f0850d66f8fbd3f970ef0be1f238c 192.168.1.157:6387
+   slots:[0-1364],[5461-6826],[10923-12287] (4096 slots) master
+S: 3bc5b5ae5b9310690d9194c0aac71192a1d082ca 192.168.1.157:6381
+   slots: (0 slots) slave
+   replicates 8be2d91fa0b46ff7f1bd0b8498452386011ffb6d
+M: 8be2d91fa0b46ff7f1bd0b8498452386011ffb6d 192.168.1.157:6386
+   slots:[1365-5460] (4096 slots) master
+   1 additional replica(s)
+M: 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7 192.168.1.157:6382
+   slots:[6827-10922] (4096 slots) master
+   1 additional replica(s)
+S: 8884804172514bfe95932a86553a35c98255673c 192.168.1.157:6384
+   slots: (0 slots) slave
+   replicates 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7
+S: 92a3146736da4e2b5139c0ebd776dd416ca1f2f3 192.168.1.157:6385
+   slots: (0 slots) slave
+   replicates 0a6511b85d5fc244797196338ce60df1bac192b2
+M: 0a6511b85d5fc244797196338ce60df1bac192b2 192.168.1.157:6383
+   slots:[12288-16383] (4096 slots) master
+   1 additional replica(s)
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+>>> Send CLUSTER MEET to node 192.168.1.157:6388 to make it join the cluster.
+Waiting for the cluster to join
+
+>>> Configure node as replica of 192.168.1.157:6387.
+[OK] New node added correctly.
+root@localhost:/data# 
+
+
+#最后查看
+root@localhost:/data# redis-cli --cluster check 192.168.1.157:6381
+192.168.1.157:6382 (6a1f29ff...) -> 0 keys | 4096 slots | 1 slaves.
+192.168.1.157:6383 (0a6511b8...) -> 1 keys | 4096 slots | 1 slaves.
+192.168.1.157:6386 (8be2d91f...) -> 0 keys | 4096 slots | 1 slaves.
+192.168.1.157:6387 (dcb723e6...) -> 0 keys | 4096 slots | 1 slaves.
+[OK] 1 keys in 4 masters.
+0.00 keys per slot on average.
+>>> Performing Cluster Check (using node 192.168.1.157:6381)
+root@localhost:/data# redis-cli --cluster check 192.168.1.157:6381
+192.168.1.157:6382 (6a1f29ff...) -> 0 keys | 4096 slots | 1 slaves.
+192.168.1.157:6383 (0a6511b8...) -> 1 keys | 4096 slots | 1 slaves.
+192.168.1.157:6386 (8be2d91f...) -> 0 keys | 4096 slots | 1 slaves.
+192.168.1.157:6387 (dcb723e6...) -> 0 keys | 4096 slots | 1 slaves.
+[OK] 1 keys in 4 masters.
+0.00 keys per slot on average.
+>>> Performing Cluster Check (using node 192.168.1.157:6381)
+S: 3bc5b5ae5b9310690d9194c0aac71192a1d082ca 192.168.1.157:6381
+   slots: (0 slots) slave
+   replicates 8be2d91fa0b46ff7f1bd0b8498452386011ffb6d
+S: 4fc4687a7d4a48a65dcdd846df3e4f7b809e296b 192.168.1.157:6388
+   slots: (0 slots) slave
+   replicates dcb723e66c7f0850d66f8fbd3f970ef0be1f238c
+M: 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7 192.168.1.157:6382
+   slots:[6827-10922] (4096 slots) master
+   1 additional replica(s)
+M: 0a6511b85d5fc244797196338ce60df1bac192b2 192.168.1.157:6383
+   slots:[12288-16383] (4096 slots) master
+   1 additional replica(s)
+S: 92a3146736da4e2b5139c0ebd776dd416ca1f2f3 192.168.1.157:6385
+   slots: (0 slots) slave
+   replicates 0a6511b85d5fc244797196338ce60df1bac192b2
+S: 8884804172514bfe95932a86553a35c98255673c 192.168.1.157:6384
+   slots: (0 slots) slave
+   replicates 6a1f29ff5f2ed047ca0e23df8749a0388afe78a7
+M: 8be2d91fa0b46ff7f1bd0b8498452386011ffb6d 192.168.1.157:6386
+   slots:[1365-5460] (4096 slots) master
+   1 additional replica(s)
+M: dcb723e66c7f0850d66f8fbd3f970ef0be1f238c 192.168.1.157:6387
+   slots:[0-1364],[5461-6826],[10923-12287] (4096 slots) master
+   1 additional replica(s)
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+root@localhost:/data# 
+
+
+
+```
+
+
+
+#### 主从缩容
+
+
+
+```sh
+
+
+# 先删除从机,再删除主机
+
+6388 id
+4fc4687a7d4a48a65dcdd846df3e4f7b809e296b
+
+#
+root@localhost:/data# redis-cli --cluster del-node 192.168.1.157:6388  4fc4687a7d4a48a65dcdd846df3e4f7b809e296b
+>>> Removing node 4fc4687a7d4a48a65dcdd846df3e4f7b809e296b from cluster 192.168.1.157:6388
+>>> Sending CLUSTER FORGET messages to the cluster...
+>>> Sending CLUSTER RESET SOFT to the deleted node.
+# 将6387 的槽号全部分配给6386 (任一一个master)
+# 以6381作为连接而已
+ redis-cli --cluster reshard 192.168.1.157:6381
+ 
+ 4096 个要挪出来
+ 黏贴 6386 的id 作为接收方
+ 黏贴6387 的id ,作为要删除的id
+ done 
+ 
+ # 将6387 剔除 集群
+ 
+# 找到6387的id
+redis-cli --cluster check 192.168.1.157:6381
+
+dcb723e66c7f0850d66f8fbd3f970ef0be1f238c
+redis-cli --cluster del-node 192.168.1.157:6387 dcb723e66c7f0850d66f8fbd3f970ef0be1f238c
+root@localhost:/data# redis-cli --cluster del-node 192.168.1.157:6387 dcb723e66c7f0850d66f8fbd3f970ef0be1f238c 
+>>> Removing node dcb723e66c7f0850d66f8fbd3f970ef0be1f238c from cluster 192.168.1.157:6387
+>>> Sending CLUSTER FORGET messages to the cluster...
+>>> Sending CLUSTER RESET SOFT to the deleted node.
+
+# 再删除的时候,数据会自动移动到6386
+```
 
 
 
 
-## 进阶篇
 
-### Docker 复杂安装详说
 
-### DockerFile解析
 
-### Docker 微服务实战
+## 进阶篇 DockerFile
 
-### Docker网络
 
-### Docker-compose 容器安排
 
-### Docker 轻量化级可视化工具 Portainer
+[DockerFile官网](https://docs.docker.com/engine/reference/builder/)
 
-### Docker 容器监控 CAdvisor+InfluxDB+Granfana
+### 构建步骤
 
-### 终结
+> * 编写DockerFile
+> * docker build命令
+> * docker run 
+
+
+
+### 基础知识
+
+* 每条保留字指令都必须大写字母且后面要跟随一个参数
+* 指令从上到下
+* \# 代表注释
+* 每条指令都会创建一个新的镜像层并对镜像进行提交
+
+### DockerFile ,镜像 ,容器区别
+
+从应用软件的角度来看，Dockerfile、Docker镜像与Docker容器分别代表软件的三个不同阶段，
+
+* Dockerfile是软件的原材料
+
+* Docker镜像是软件的交付品
+
+* Docker容器则可以认为是软件镜像的运行态，也即依照镜像运行的容器实例
+
+Dockerfile面向开发
+
+Docker镜像成为交付标准
+
+Docker容器则涉及部署与运维
+
+三者缺一不可，合力充当Docker体系的基石。
+
+### 保留字
+
+```sh
+FROM 基础镜像,当前新镜像时基于哪个镜像的,指定一个已存在的
+MAINTAINER 镜像维护者的姓名和邮箱地址
+RUN 容器构建时需要运行的命令
+	有两种格式:
+		shell:
+			RUN yum -y install vim
+		
+		exec:
+			["可执行的文件","参数一","参数2"]
+			RUN ["./test.php","dev","offline"]
+	RUN是在docker build时运行
+
+EXPOSE 暴露端口号
+WORKDIR  指定在创建容器后,终端默认登录进来的工作目录,一个落脚点
+USER   指定该镜像以什么用户去执行,默认Root
+ENV 运行时环境
+	ENV MY_PATH /usr/mytest
+	这个环境变量可以在后续的任何RUN指令中使用，这就如同在命令前面指定了环境变量前缀一样；
+	也可以在其它指令中直接使用这些环境变量，
+	比如：WORKDIR $MY_PATH
+ADD 将宿主主机目录下的文件拷贝进镜像会自动处理URL和解压tar压缩包(推荐用ADD) =copy+解压命令
+COPY 类似ADD ,拷贝文件和目录到镜像中,,从构建上下文目录中<源路径>的文件/目录复制到新的一层的镜像内的目标路径
+	COPY SRC DEST
+	COPY ["SRC","DESC"]
+	<SRC源路径>:源文件或者源目录
+	<DEST目标路径>:容器内的指定路径,该路径会自动创建
+VOLUME 
+	相当于 -v 挂载
+	
+CMD 指定容器启动后要干的事情
+	可以有多个CMD命令,但只有最后一个生效,CMD会被docker run  之后的参数替换
+	tomcat
+	EXPOSE 8080
+	CMD ["CATALINA.SH","RUN"]
+	
+	docker run -itd tomcat /bin/bash
+	如果运行上述命令则会将/bin/bash 替换掉 CMD ["CATALINA.SH","RUN"]
+	
+ENTRYPOINT
+	 也是用来指定一个容器启动时要运行的命令
+	类似于CMD指令，但是ENTRYPOINT 不会被docker run 后面的命令覆盖,而且这些命令行参数会被当做参数送给ENTRYPOINT 指定的程序
+	
+	
+	
+```
+
+假设已通过 Dockerfile 构建了 nginx:test 镜像：
+
+![graphic](data:application/octet-stream;base64,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)
+
+| 是否传参         | 按照dockerfile编写执行         | 传参运行                                     |
+| ---------------- | ------------------------------ | -------------------------------------------- |
+| Docker命令       | docker run nginx:test          | docker run nginx:test -c /etc/nginx/new.conf |
+| 衍生出的实际命令 | nginx -c /etc/nginx/nginx.conf | nginx -c /etc/nginx/new.conf                 |
+
+| build         | both    | run        |
+| ------------- | ------- | ---------- |
+| from          | workidr | cmd        |
+| maintainer    | user    | env        |
+| copy          |         | expose     |
+| add           |         | volume     |
+| run           |         | entrypoint |
+| onbuild       |         |            |
+| .dockerignore |         |            |
+
+### Dokcerfile 实战一 centos7 +vim+ifconfig+jdk8
+
+[jdk镜像](https://mirrors.yangxingzhen.com/jdk/)
+
+```sh
+mkdir -p /data/dockerfile/test
+cd /data/dockerfile/test/
+
+wget https://mirrors.yangxingzhen.com/jdk/jdk-8u192-linux-x64.tar.gz
+
+
+vim  Dockerfile
+
+FROM centos
+MAINTAINER burny.tech
+ 
+ENV MYPATH /usr/local
+WORKDIR $MYPATH
+ 
+#安装vim编辑器
+RUN yum -y install vim
+#安装ifconfig命令查看网络IP
+RUN yum -y install net-tools
+#安装java8及lib库
+RUN yum -y install glibc.i686
+RUN mkdir /usr/local/java
+#ADD 是相对路径jar,把jdk-8u171-linux-x64.tar.gz添加到容器中,安装包必须要和Dockerfile文件在同一位置
+ADD jdk-8u192-linux-x64.tar.gz /usr/local/java/
+#配置java环境变量
+ENV JAVA_HOME /usr/local/java/jdk1.8.0_171
+ENV JRE_HOME $JAVA_HOME/jre
+ENV CLASSPATH $JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JRE_HOME/lib:$CLASSPATH
+ENV PATH $JAVA_HOME/bin:$PATH
+ 
+EXPOSE 80
+ 
+CMD echo $MYPATH
+CMD echo "success--------------ok"
+CMD /bin/bash
+
+#构建,不要忽略.
+docker build -t 新镜像名字:tag .
+
+docker build  -t test:001 .
+
+#运行
+docker run -itd 新景象名字:tag /bin/bash
+
+```
+
+### 虚悬镜像
+
+错误的镜像
+
+仓库名和tag为none
+
+```sh
+# 生成一个
+vim Dockerfile
+
+
+from ubuntu
+CMD echo 'action is success
+
+#编译
+docker build .
+#查看
+docker image ls -f dangling=true
+#删除
+docker image prune 
+
+```
+
+## 进阶篇 dockerfile 部署 springboot到docker容器
+
+
+
+Dockerfile文件
+
+```sh
+
+
+# 基础镜像使用java
+
+FROM java:8
+
+# 作者
+
+MAINTAINER burny.tech
+
+# VOLUME 指定临时文件目录为/tmp，在主机/var/lib/docker目录下创建了一个临时文件并链接到容器的/tmp
+
+VOLUME /tmp
+
+# 将jar包添加到容器中并更名为burny.jar
+
+ADD docker_boot-0.0.1-SNAPSHOT.jar burny.jar
+
+# 运行jar包
+
+
+ENTRYPOINT ["java","-jar","/burny.jar"]
+
+#暴露6001端口作为微服务
+
+EXPOSE 6001
+```
+
+
+
+将微服务jar包和dockerfile文件弄到同个文件夹
+
+```sh
+docker build -t burny:1.6  .
+docker run -itd -p 6001:6001 burny:1.6
+
+
+firewall-cmd  --zone=public --permanent --add-port=6001/tcp
+firewall-cmd --reload
+```
+
+
+
+## 进阶篇Docker 网络
+
+
+
+### 是什么
+
+#### docker 服务没启动时
+
+根据不同虚拟软件可能不同,笔者用的virturalbox 
+
+* enp0s3 虚拟机
+* lo 回环地址
+* ens33 宿主主机的地址
+* virbr0  系统发现有虚拟化的服务时候,就会创建一个地址,作用是连接其他虚拟网卡提供NAT访问外网的功能
+
+```sh
+systemctl stop docker
+
+
+[root@localhost test]# ifconfig
+docker0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        inet 172.17.0.1  netmask 255.255.0.0  broadcast 172.17.255.255
+        inet6 fe80::42:adff:fe1f:66a7  prefixlen 64  scopeid 0x20<link>
+        ether 02:42:ad:1f:66:a7  txqueuelen 0  (Ethernet)
+        RX packets 2672  bytes 635854 (620.9 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 2728  bytes 245018 (239.2 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+enp0s3: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.1.157  netmask 255.255.255.0  broadcast 192.168.1.255
+        inet6 fe80::a00:27ff:fecb:55ab  prefixlen 64  scopeid 0x20<link>
+        ether 08:00:27:cb:55:ab  txqueuelen 1000  (Ethernet)
+        RX packets 15571503  bytes 1620279114 (1.5 GiB)
+        RX errors 0  dropped 30488  overruns 0  frame 0
+        TX packets 24771819  bytes 3855020325 (3.5 GiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 1173186  bytes 693356400 (661.2 MiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 1173186  bytes 693356400 (661.2 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+```
+
+
+
+
+
+#### docker启动
+
+```sh
+ systemctl start docker
+ # 虚拟网桥
+ 
+docker0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        inet 172.17.0.1  netmask 255.255.0.0  broadcast 172.17.255.255
+        inet6 fe80::42:adff:fe1f:66a7  prefixlen 64  scopeid 0x20<link>
+        ether 02:42:ad:1f:66:a7  txqueuelen 0  (Ethernet)
+        RX packets 2672  bytes 635854 (620.9 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 2728  bytes 245018 (239.2 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+```
+
+
+
+### docker 网络命令
+
+```sh
+
+docker network ls
+docker network create   网络名字 #默认是bridge模式
+docker network inspect   网络名字 # 查看网络源数据
+docker network rm  网络名字
+
+
+
+```
+
+
+
+:::: code-group
+
+::: code-group-item docker network ls
+
+```sh
+[root@localhost test]# docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+ebf7640f9a30   bridge    bridge    local
+ef70e4068b78   host      host      local
+8690018e54ae   none      null      local
+
+```
+
+
+
+::: 
+
+::: code-group-item create
+
+```sh
+[root@localhost test]# docker network  create testname
+370895fa5c35c40d6caa98ffd7b3c5eed64fe4451e0e595d6b8cdad3666a7b61
+[root@localhost test]# docker network ls
+NETWORK ID     NAME       DRIVER    SCOPE
+ebf7640f9a30   bridge     bridge    local
+ef70e4068b78   host       host      local
+8690018e54ae   none       null      local
+370895fa5c35   testname   bridge    local
+
+```
+
+
+
+::: 
+
+::: code-group-item rm
+
+```sh
+[root@localhost test]# docker network  rm testname 
+testname
+[root@localhost test]# docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+ebf7640f9a30   bridge    bridge    local
+ef70e4068b78   host      host      local
+8690018e54ae   none      null      local
+
+```
+
+
+
+::: 
+
+::::
+
+###  能干嘛
+
+* 容器间的互联和通信以及端口映射
+* 容器IP变动时候可以通过服务名直接网络通信而不受到影响
+
+### 网络模式 类似于虚拟软件上的网络模式
+
+##### 总体介绍
+
+* bridge模式：使用--network bridge指定，默认使用docker0  # 网络
+* host模式：使用--network host指定
+* none模式：使用--network none指定
+* container模式：使用--network container:NAME或者容器ID指定
+
+
+
+```sh
+bridge
+	为每一个容器分配设置ip ,并将容器连接到一个docker0 虚拟网桥,默认为该模式
+	
+host	容器将不会虚拟出自己的网卡,配置自己的ip等,而是使用宿主主机的ip 和端口
+none  	断网
+container	 不会创建自己的网卡和配置自己的ip 而是和一个指定的容器共享ip 端口范围
+
+```
+
+#### 容器实例内默认网络IP 生产规则
+
+```sh
+docker run -it --name u1 ubuntu bash
+docker run -it --name u2 ubuntu bash
+docker inspect u1 |tail -n 20
+docker inspect u2 |tail -n 20
+
+[root@localhost test]# docker inspect u1 |tail -n 20
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "ebf7640f9a30ffd1ca15dc8cd8cf8468ad35fc45951e9d9ec5ed28193a891ba5",
+                    "EndpointID": "bb4cba59076267ad6f98037935303cc405bcf15b58f3c5e7fb4be96a4891a833",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.2",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:11:00:02",
+                    "DriverOpts": null
+                }
+            }
+        }
+    }
+]
+
+[root@localhost test]# docker inspect u2 |tail -n 20
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "ebf7640f9a30ffd1ca15dc8cd8cf8468ad35fc45951e9d9ec5ed28193a891ba5",
+                    "EndpointID": "1ee12c0c4ba90e7f45924ad77e2c8b6c0e00f0252ebfc43a2a8071c34f7c49c0",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.3",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:11:00:03",
+                    "DriverOpts": null
+                }
+            }
+        }
+    }
+]
+
+# 关闭u2
+# 新建u3 
+发现u2的ip已经分给了u3
+
+
+```
+
+#### 案例说明
+
+##### bridge
+
+总结:相当于和宿主主机在同一个网段上的同个服务期器
+
+例如
+
+```sh
+宿主主机为 192.168.1.151
+虚拟机为 192.168.1.188
+
+```
+
+
+
+Docker 服务默认会创建一个 docker0 网桥（其上有一个 docker0 内部接口），该桥接网络的名称为docker0，它在内核层连通了其他的物理或虚拟网卡，这就将所有容器和本地主机都放到同一个物理网络。Docker 默认指定了 docker0 接口 的 IP 地址和子网掩码，让主机和容器之间可以通过网桥相互通信。
+
+ 
+
+\# 查看 bridge 网络的详细信息，并通过 grep 获取名称项
+
+`docker network inspect bridge | grep name`
+
+`ifconfig|grep docker0`
+
+```sh
+1 Docker使用Linux桥接，在宿主机虚拟一个Docker容器网桥(docker0)，Docker启动一个容器时会根据Docker网桥的网段分配给容器一个IP地址，称为Container-IP，同时Docker网桥是每个容器的默认网关。因为在同一宿主机内的容器都接入同一个网桥，这样容器之间就能够通过容器的Container-IP直接通信。
+
+ 
+
+2 docker run 的时候，没有指定network的话默认使用的网桥模式就是bridge，使用的就是docker0。在宿主机ifconfig,就可以看到docker0和自己create的network(后面讲)eth0，eth1，eth2……代表网卡一，网卡二，网卡三……，lo代表127.0.0.1，即localhost，inet addr用来表示网卡的IP地址
+
+ 
+
+3 网桥docker0创建一对对等虚拟设备接口一个叫veth，另一个叫eth0，成对匹配。
+
+   3.1 整个宿主机的网桥模式都是docker0，类似一个交换机有一堆接口，每个接口叫veth，在本地主机和容器内分别创建一个虚拟接口，并让他们彼此联通（这样一对接口叫veth pair）；
+
+   3.2 每个容器实例内部也有一块网卡，每个接口叫eth0；
+
+   3.3 docker0上面的每个veth匹配某个容器实例内部的eth0，两两配对，一一匹配。
+
+ 通过上述，将宿主机上的所有容器都连接到这个内部网络上，两个容器在同一个网络下,会从这个网关下各自拿到分配的ip，此时两个容器的网络是互通的。
+```
+
+![](/images/system/docker/020.png)
+
+::::code-group
+
+::: code-group-item
+
+```sh
+[root@localhost test]# docker ps
+\CONTAINER ID   IMAGE     COMMAND   CREATED          STATUS          PORTS     NAMES
+c5546232aab9   ubuntu    "bash"    17 minutes ago   Up 16 minutes             u2
+9705df2d09a1   ubuntu    "bash"    18 minutes ago   Up 16 minutes             u1
+
+[root@localhost test]# ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:cb:55:ab brd ff:ff:ff:ff:ff:ff
+    inet 192.168.1.157/24 brd 192.168.1.255 scope global dynamic noprefixroute enp0s3
+       valid_lft 60008sec preferred_lft 60008sec
+    inet6 fe80::a00:27ff:fecb:55ab/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+3: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:ad:1f:66:a7 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:adff:fe1f:66a7/64 scope link 
+       valid_lft forever preferred_lft forever
+       ## 下面是终点 eth0 @veth 一一匹配
+128: vethc9fb6dd@if127: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether 66:9b:ff:20:93:39 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::649b:ffff:fe20:9339/64 scope link 
+       valid_lft forever preferred_lft forever
+130: vethf7742b0@if129: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether 72:02:c2:2f:97:34 brd ff:ff:ff:ff:ff:ff link-netnsid 1
+    inet6 fe80::7002:c2ff:fe2f:9734/64 scope link 
+       valid_lft forever preferred_lft forever
+
+```
+
+
+
+:::
+
+::::
+
+##### host
+
+
+
+直接使用宿主机的 IP 地址与外界进行通信，不再需要额外进行NAT 转换。
+
+容器将不会获得一个独立的Network Namespace， 而是和宿主机共用一个Network Namespace。容器将不会虚拟出自己的网卡而是使用宿主机的IP和端口。
+
+![](/images/system/docker/021.png)
+
+###### 现象
+
+
+
+1. host模式port为空
+
+![](/images/system/docker/022.png)
+
+
+
+2.
+ ```sh
+   [root@localhost test]# docker inspect  redis-node-1 |tail -n 20
+               "Networks": {
+                   "host": {
+                       "IPAMConfig": null,
+                       "Links": null,
+                       "Aliases": null,
+                       "NetworkID": "ef70e4068b78534be4c11b0f0a3c1dd2049b5201bf62cee876e139007c5682e5",
+                       "EndpointID": "e693c0710977503b98c4d4c8f4fc1355928b3a80f5734d973b5efd7ea8b19fde",
+                       #没有网关和ip
+                       "Gateway": "",
+                       "IPAddress": "",
+                       "IPPrefixLen": 0,
+                       "IPv6Gateway": "",
+                       "GlobalIPv6Address": "",
+                       "GlobalIPv6PrefixLen": 0,
+                       "MacAddress": "",
+                       "DriverOpts": null
+                   }
+               }
+           }
+       }
+   ]
+ ```
+
+3. 进入redis 
+
+```sh
+用ifconfig 查看跟不进入容器是一样的
+这里没有ifcofig 命令,用tomcat 可能有
+```
+
+#####  none
+
+禁用网络功能，只有lo标识(就是127.0.0.1表示本地回环)
+
+##### container
+
+![](/images/system/docker/023.png)
+
+```sh
+docker run -d -p 8086:8080  --network container:tomcat85   --name tomcat86 billygoo/tomcat8-jdk8
+#tomcat85 是其他容器名字
+# 容易导致端口冲突
+```
+
+### 自定义网络
+
+#### 容器IP变动时候可以通过服务名直接网络通信而不受到影响
+
+>
+
+>容器内安装ifconfig
+>
+>apt-get update
+>
+>apt-get install net-tools
+
+
+
+没有用自定义网络之前
+
+```sh
+docker rm $(docker ps -aq)
+docker run -itd   --privileged=true -p 8081:8080   --name tomcat81 billygoo/tomcat8-jdk8
+docker run -itd -p 8082:8080   --name tomcat82 billygoo/tomcat8-jdk8
+上述成功启动并用docker exec进入各自容器实例内部
+通过ip addr 或者if config
+进入容器内部，可以通过ip ping  ip   通其他容器
+但是通过服务名就ping 不通
+
+```
+
+
+
+如何用自定义网络？
+
+```sh
+docker network create burny_01
+
+[root@localhost ~]# docker network create burny_01
+df054bcd3db04adc34cf52e23a4ce9acf2a04d61a2cde383ab4061230edd80da
+
+[root@localhost ~]# docker network ls
+NETWORK ID     NAME       DRIVER    SCOPE
+b71c5d616d81   bridge     bridge    local
+df054bcd3db0   burny_01   bridge    local
+ef70e4068b78   host       host      local
+8690018e54ae   none       null      local
+
+[root@localhost ~]# docker run -itd  -p 6379:6379 --network burny_01   --name redis01  redis:7.0
+[root@localhost ~]# docker run -itd  -p 6380:6379 --network burny_01   --name redis02  redis:7.0
+
+进入容器内部，可以通过ping redeis01
+或者ping redis02 ping通
+而不再需要用ip地址才可以ping 通。保证两者处于同一网段内
+
+自定义网络本身就维护好了主机名和ip的对应关系（ip和域名都能通）
+```
+
+## Docker-compose 容器安排
+
+### 是什么
+
+如果容器太多，怎么管理？
+
+### 能干嘛
+
+Compose允许用户通过一个单独的`docker-compose.yml`模板文件（`YAML` 格式）来定义一组相关联的应用容器为一个项目（`project`）。
+
+可以很容易地用一个配置文件定义一个多容器的应用，然后使用一条指令安装这个应用的所有依赖，完成构建。`Docker-Compose` 解决了容器与容器之间如何管理编排的问题。
+
+### 安装部署
+
+[DockerCompose官网](https://docs.docker.com/compose/compose-file/compose-file-v3/)
+
+[官网下载指引](https://docs.docker.com/compose/install/other/)
+
+```sh
+
+
+curl -SL https://github.com/docker/compose/releases/download/v2.12.2/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+
+cd /usr/local/bin/
+ chmod -R 777 docker-compose
+ sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+ 
+ [root@localhost bin]# docker-compose --version
+Docker Compose version v2.12.2
+
+```
+
+### 核心概念
+
+#### 一个文件
+
+`docker-compose.yml`
+
+#### 两个要素
+
+服务： 各种软件，`mysql`,`redis`
+
+工程：`springboot` ，`springcloud`+服务构建起来的整个工程
+
+### 三个步骤
+
+1. 编写`Dockerfile`定义各个微服务应用并构建出对应的镜像文件
+2. 使用 `docker-compose.yml` 定义一个完整业务单元，安排好整体应用中的各个容器服务。
+3. 最后，执行`docker-compose up`命令 来启动并运行整个应用程序，完成一键部署上线
+
+### 常用命令
+
+```sh
+docker-compose -h                           # 查看帮助
+docker-compose up                           # 启动所有docker-compose服务
+docker-compose up -d                        # 启动所有docker-compose服务并后台运行
+docker-compose down                         # 停止并删除容器、网络、卷、镜像。
+docker-compose exec  yml里面的服务id                 # 进入容器实例内部  docker-compose exec docker-compose.yml文件中写的服务id /bin/bash
+
+docker-compose ps                      # 展示当前docker-compose编排过的运行的所有容器
+docker-compose top                     # 展示当前docker-compose编排过的容器进程
+docker-compose logs  yml里面的服务id     # 查看容器输出日志
+docker-compose config     # 检查配置
+docker-compose config -q  # 检查配置，有问题才有输出
+docker-compose restart   # 重启服务
+docker-compose start     # 启动服务
+docker-compose stop      # 停止服务
+```
+
+### 改造升级微服务工程docker_boot
+
+`Dockerfile.yml`
+
+```sh
+# 基础镜像使用java
+
+FROM java:8
+
+# 作者
+
+MAINTAINER burny
+
+# VOLUME 指定临时文件目录为/tmp，在主机/var/lib/docker目录下创建了一个临时文件并链接到容器的/tmp
+
+VOLUME /tmp
+
+# 将jar包添加到容器中并更名为burny.jar
+
+ADD docker_boot-0.0.1-SNAPSHOT.jar burny.jar
+# 运行jar包
+ENTRYPOINT ["java","-jar","/burny.jar"]
+#暴露6001端口作为微服务
+EXPOSE 6001
+```
+
+### 不用compose
+
+产生的问题是：需要多个容器进行配合启动，而且有启动顺序
+
+```sh
+#mysql
+docker run -p 3306:3306 --name mysql57 --privileged=true -v /zzyyuse/mysql/conf:/etc/mysql/conf.d -v /zzyyuse/mysql/logs:/logs -v /zzyyuse/mysql/data:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=123456 -d mysql:5.7
+
+
+docker exec -it mysql57 /bin/bash
+mysql -uroot -p
+create database db2021;
+use db2021;
+
+#redis
+docker run  -p 6379:6379 --name redis608 --privileged=true -v /app/redis/redis.conf:/etc/redis/redis.conf -v /app/redis/data:/data -d redis:6.0.8 redis-server /etc/redis/redis.conf
+#springboot
+docker run -d -p 6001:6001 burny:1.6
+```
+
+### docker-compose.yml
+
+```sh
+version: "3"
+services:
+  microService:
+    image: zzyy_docker:1.6
+    container_name: ms01
+    ports:
+      - "6001:6001"
+    volumes:
+      - /app/microService:/data
+    networks: 
+      - atguigu_net 
+    depends_on: 
+      - redis
+      - mysql
+  redis:
+    image: redis:6.0.8
+    ports:
+      - "6379:6379"
+    volumes:
+      - /app/redis/redis.conf:/etc/redis/redis.conf
+      - /app/redis/data:/data
+    networks: 
+      - atguigu_net
+    command: redis-server /etc/redis/redis.conf
+  mysql:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: '123456'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'no'
+      MYSQL_DATABASE: 'db2021'
+      MYSQL_USER: 'zzyy'
+      MYSQL_PASSWORD: 'zzyy123'
+    ports:
+       - "3306:3306"
+    volumes:
+       - /app/mysql/db:/var/lib/mysql
+       - /app/mysql/conf/my.cnf:/etc/my.cnf
+       - /app/mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - atguigu_net
+    command: --default-authentication-plugin=mysql_native_password #解决外部无法访问
+networks: 
+   atguigu_net: 
+```
+
+* 需要修改下SpringBoot的配置文件,将ip更改为服务名
+
+```sh
+#spring.datasource.url=jdbc:mysql://192.168.111.169:3306/db2021?useUnicode=true&characterEncoding=utf-8&useSSL=false
+spring.datasource.url=jdbc:mysql://mysql:3306/db2021?useUnicode=true&characterEncoding=utf-8&useSSL=false
+#spring.redis.host=192.168.111.169
+spring.redis.host=redis
+
+```
+
+```sh
+docker-compose config -q  #检查yml文件是否有问题
+docker-compose up
+docker-compose up -d # 后台运行
+docker-compose 
+```
+
+* 会在网络中添加 `当前目录名字_网络名称`
+*  redis 和mysql没添加容器名称，则容器名称也会生成   当前目录名字_redis 或者当前目录名字_mysql
+
+
+
+## Docker 轻量化级可视化工具 Portainer
+
+[官网](https://www.portainer.io/)
+
+[说明文档](https://docs.portainer.io/v/ce-2.9/start/install/server/docker/linux)
+
+### 安装
+
+```sh
+docker run -d -p 8000:8000 -p 9000:9000 --name portainer     --restart=always     -v /var/run/docker.sock:/var/run/docker.sock     -v portainer_data:/data     portainer/portainer-ce
+-v "/var/run/docker.sock:/var/run/docker.sock"
+```
+
+![](/images/system/docker/025.png)
+
+笔者通过portainer web停止 portainer 容器失败
+
+## Docker 容器监控 CAdvisor+InfluxDB+Granfana
+
+### 原生命令
+
+```sh
+[root@localhost ~]# docker stats
+CONTAINER ID   NAME        CPU %     MEM USAGE / LIMIT     MEM %     NET I/O           BLOCK I/O   PIDS
+a9713ad17cae   portainer   0.00%     8.836MiB / 5.576GiB   0.15%     6.46kB / 1.82kB   0B / 0B     5
+
+```
+
+### 组件
+
+CAdvisor监控收集+InfluxDB存储数据+Granfana展示图表
+
+### 安装
+
+```sh
+[root@localhost ~]# mkdir -p /data/cig
+[root@localhost ~]# cd /data/cig/
+ vim docker-compose.yml
+
+
+
+
+version: '3.1'
+volumes:
+  grafana_data: {}
+services:
+ influxdb:
+  image: tutum/influxdb:0.9
+  restart: always
+  environment:
+    - PRE_CREATE_DB=cadvisor
+  ports:
+    - "8083:8083"
+    - "8086:8086"
+  volumes:
+    - ./data/influxdb:/data
+ cadvisor:
+  image: google/cadvisor
+  links:
+    - influxdb:influxsrv
+  command: -storage_driver=influxdb -storage_driver_db=cadvisor -storage_driver_host=influxsrv:8086
+  restart: always
+  ports:
+    - "8080:8080"
+  volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:rw
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
+ grafana:
+  user: "104"
+  image: grafana/grafana
+  user: "104"
+  restart: always
+  links:
+    - influxdb:influxsrv
+  ports:
+    - "3000:3000"
+  volumes:
+    - grafana_data:/var/lib/grafana
+  environment:
+    - HTTP_USER=admin
+    - HTTP_PASS=admin
+    - INFLUXDB_HOST=influxsrv
+    - INFLUXDB_PORT=8086
+    - INFLUXDB_NAME=cadvisor
+    - INFLUXDB_USER=root
+    - INFLUXDB_PASS=root
+    
+    
+  firewall-cmd  --zone=public --permanent --add-port=8083/tcp  
+  firewall-cmd  --zone=public --permanent --add-port=8086/tcp
+  firewall-cmd  --zone=public --permanent --add-port=8080/tcp
+  firewall-cmd  --zone=public --permanent --add-port=3000/tcp
+  firewall-cmd --reload
+    
+ docker-compose config -q
+ docker-compose  up -d
+ 
+ 192.168.1.157:3000  #g   admin/admin
+ 192.168.1.157:8080  #c
+ 192.168.1.157:8083  #i     root/root
+ 
+ #由于笔者的cAdvisor一直处于重启转台中，无法进行演示
+```

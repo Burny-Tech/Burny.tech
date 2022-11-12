@@ -179,3 +179,17 @@ FROM
 	information_schema.TABLES;
 ```
 
+## select into
+
+```sh
+
+
+create table xxxx like data_mgr;
+ 
+insert into xxxx select * from data_mgr;
+
+把table_2数据转存到table_1，此方法适合table_1已经创建的
+
+INSERT INTO db1_name(field1,field2) SELECT field1,field2 FROM db2_name
+```
+
